@@ -17,6 +17,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_send_lightweight(const void *buf,
                                                         MPIDI_av_entry_t * addr,
                                                         int vni_src, int vni_dst)
 {
+    fprintf(stdout, "I am from inside ofi_send_lightweight\n");
+
     int mpi_errno = MPI_SUCCESS;
     int vni_local = vni_src;
     int vni_remote = vni_dst;
@@ -57,6 +59,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_send_iov(const void *buf, MPI_Aint count,
                                                 MPIDI_av_entry_t * addr, int vni_src, int vni_dst,
                                                 MPIR_Request * sreq, MPIR_Datatype * dt_ptr)
 {
+    fprintf(stdout, "I am from inside ofi_send_iov\n");
     int mpi_errno = MPI_SUCCESS;
     struct iovec *originv = NULL;
     struct fi_msg_tagged msg;
@@ -126,6 +129,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_send_normal(const void *buf, MPI_Aint cou
                                                    MPIR_Datatype * dt_ptr, MPI_Aint dt_true_lb,
                                                    uint64_t type)
 {
+    fprintf(stdout, "I am from inside ofi_send_normal\n");
     int mpi_errno = MPI_SUCCESS;
     char *send_buf;
     uint64_t match_bits;
@@ -318,6 +322,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_send(const void *buf, MPI_Aint count, MPI
                                             MPIR_Request ** request, int noreq,
                                             uint64_t syncflag, MPIR_Errflag_t err_flag)
 {
+    fprintf(stdout, "I am from inside ofi_send\n");
     int dt_contig, mpi_errno;
     size_t data_sz;
     MPI_Aint dt_true_lb;
@@ -369,6 +374,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_send(const void *buf, MPI_Aint count, MPI
 /* Common macro used by all MPIDI_NM_mpi_send routines to facilitate tuning */
 #define MPIDI_OFI_SEND_VNIS(vni_src_, vni_dst_) \
     do { \
+        fprintf(stdout, "I am from inside ofi_send.h\n"); \
         if (*request != NULL) { \
             /* workq path */ \
             vni_src_ = 0; \
@@ -382,8 +388,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_send(const void *buf, MPI_Aint count, MPI
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_isend(const void *buf, MPI_Aint count,
                                                 MPI_Datatype datatype, int rank, int tag,
                                                 MPIR_Comm * comm, int context_offset,
-                                                MPIDI_av_entry_t * addr, MPIR_Request ** request)
+                                                MPIDI_av_entry_t * addr, int vni_src, int vni_dest, MPIR_Request ** request)
 {
+    fprintf(stdout, "I am from inside ofi_send.h\n");
+
     int mpi_errno;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_ISEND);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_ISEND);
@@ -426,6 +434,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_isend_coll(const void *buf, MPI_Aint count
                                                  MPIDI_av_entry_t * addr,
                                                  MPIR_Request ** request, MPIR_Errflag_t * errflag)
 {
+    fprintf(stdout, "I am from inside ofi_isend_coll\n");
+
     int mpi_errno;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_ISEND_COLL);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_ISEND_COLL);
@@ -454,6 +464,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_issend(const void *buf, MPI_Aint count
                                                  MPIR_Comm * comm, int context_offset,
                                                  MPIDI_av_entry_t * addr, MPIR_Request ** request)
 {
+    fprintf(stdout, "I am from inside ofi_issend\n");
+
     int mpi_errno;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_ISSEND);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_ISSEND);

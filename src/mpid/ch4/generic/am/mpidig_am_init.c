@@ -118,6 +118,7 @@ void MPIDIG_am_reg_cb(int handler_id,
 
 int MPIDIG_am_init(void)
 {
+    fprintf(stdout, "I am from inside mpidig_am_init\n");
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_AM_INIT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_AM_INIT);

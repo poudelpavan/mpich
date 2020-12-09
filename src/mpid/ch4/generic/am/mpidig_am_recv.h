@@ -339,6 +339,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_irecv(void *buf,
                                               MPIR_Request ** request,
                                               int is_local, MPIR_Request * partner)
 {
+    fprintf(stdout, "I am from inside mpidig_mpi_irecv, comm->seq = %d\n",comm->seq);
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_MPI_IRECV);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_MPI_IRECV);

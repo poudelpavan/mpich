@@ -12,6 +12,8 @@ int MPID_Send(const void * buf, MPI_Aint count, MPI_Datatype datatype, int rank,
 	      int tag, MPIR_Comm * comm, int context_offset,
 	      MPIR_Request ** request)
 {
+	fprintf(stdout, "I am from inside mpid_send.h\n");
+
     intptr_t data_sz;
     int dt_contig;
     MPI_Aint dt_true_lb;
