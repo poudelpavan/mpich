@@ -21,7 +21,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_mpi_isend(const void *buf, MPI_Aint cou
                                                    MPIR_Comm * comm, int context_offset,
                                                    MPIDI_av_entry_t * addr, MPIR_Request ** request)
 {
-    return MPIDIG_mpi_isend(buf, count, datatype, rank, tag, comm, context_offset, addr, request);
+    int vni_src = 0, vni_dst = 0;
+    return MPIDIG_mpi_isend(buf, count, datatype, rank, tag, comm, context_offset, addr, vni_src, vni_dst, request);
 }
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_isend_coll(const void *buf, MPI_Aint count,
