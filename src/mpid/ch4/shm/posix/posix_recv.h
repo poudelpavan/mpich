@@ -36,8 +36,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_mpi_irecv(void *buf,
                                                    MPIR_Comm * comm, int context_offset,
                                                    MPIR_Request ** request)
 {
+    int vni_src = 0, vni_dst = 0;
     int mpi_errno =
-        MPIDIG_mpi_irecv(buf, count, datatype, rank, tag, comm, context_offset, request, 1, NULL);
+        MPIDIG_mpi_irecv(buf, count, datatype, rank, tag, comm, context_offset, vni_src, vni_dst, request, 1, NULL);
     MPIDI_POSIX_recv_posted_hook(*request, rank, comm);
     return mpi_errno;
 }

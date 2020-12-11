@@ -336,6 +336,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_irecv(void *buf,
                                               int rank,
                                               int tag,
                                               MPIR_Comm * comm, int context_offset,
+                                              int vni_src, int vni_dst,
                                               MPIR_Request ** request,
                                               int is_local, MPIR_Request * partner)
 {

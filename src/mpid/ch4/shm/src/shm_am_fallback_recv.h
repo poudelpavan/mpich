@@ -21,7 +21,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_SHM_mpi_irecv(void *buf,
                                                  MPIR_Comm * comm, int context_offset,
                                                  MPIR_Request ** request)
 {
-    return MPIDIG_mpi_irecv(buf, count, datatype, rank, tag, comm, context_offset, request, 1,
+    int vni_src = 0, vni_dst = 0;
+    return MPIDIG_mpi_irecv(buf, count, datatype, rank, tag, comm, context_offset, vni_src, vni_dst, request, 1,
                             NULL);
 }
 
