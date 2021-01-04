@@ -37,7 +37,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_isend(const void *buf,
                                                 MPIDI_av_entry_t * addr, MPIR_Request ** request)
 {
     int vni_src = 0, vni_dst = 0;
-    MPIDI_NM_SEND_VNIS(vni_src_, vni_dst_);
+    MPIDI_NM_SEND_VNIS(vni_src, vni_dst);
     return MPIDIG_mpi_isend(buf, count, datatype, rank, tag, comm, context_offset, addr, vni_src, vni_dst, request);
 }
 
