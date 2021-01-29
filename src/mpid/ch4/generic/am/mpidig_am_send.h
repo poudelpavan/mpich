@@ -40,7 +40,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_isend_impl(const void *buf, MPI_Aint count,
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_ISEND_IMPL);
 
     if (sreq == NULL) {
-        sreq = MPIDIG_request_create(MPIR_REQUEST_KIND__SEND, 2);
+        sreq = MPIDIG_request_create(MPIR_REQUEST_KIND__SEND, 2, comm->seq);
         MPIR_ERR_CHKANDSTMT((sreq) == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
         *request = sreq;
     } else {
@@ -122,7 +122,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_isend(const void *buf,
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_MPI_ISEND);
     MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vni_src).lock);
     if(tag == 0)
-        fprintf(stdout,"(send)thread=%ld, vni_src = %d, comm = %x, context_id=%d tag = %d, buf_val = %d\n",pthread_self(),vni_src,comm->handle,comm->context_id,tag, *(int *)buf);
+        fprintf(stdout,"(send)thread %ld, vni_src = %d, comm = %x, context_id=%d tag = %d, buf_val = %d\n",pthread_self(),vni_src,comm->handle,comm->context_id,tag, *(int *)buf);
 
     mpi_errno =
         MPIDIG_isend_impl(buf, count, datatype, rank, tag, comm, context_offset, addr, vni_src, vni_dst,

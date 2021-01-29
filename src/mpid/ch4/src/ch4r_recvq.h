@@ -154,7 +154,7 @@ MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDIG_dequeue_posted(int rank, int tag,
                                                              int is_local, MPIDIG_rreq_t ** list)
 {
     if(tag == 0)
-        fprintf(stdout,"thread id = %ld, before dequeue_posted, list = %p, *list = %p\n",pthread_self(),list,*list);
+        fprintf(stdout,"thread %ld, before dequeue_posted, list = %p, *list = %p\n",pthread_self(),list,*list);
     MPIR_Request *req = NULL;
     MPIDIG_rreq_t *curr, *tmp;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_DEQUEUE_POSTED);

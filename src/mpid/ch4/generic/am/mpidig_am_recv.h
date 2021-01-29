@@ -238,7 +238,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_do_irecv(void *buf, MPI_Aint count, MPI_Data
         rreq = *request;
         MPIDIG_request_init(rreq, MPIR_REQUEST_KIND__RECV);
     } else if (alloc_req) {
-        rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RECV, 2,root_comm->seq);
+        rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RECV, 2, root_comm->seq);
         MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
     } else {
         rreq = *request;

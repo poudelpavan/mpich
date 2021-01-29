@@ -310,7 +310,7 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
     MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
                     (MPL_DBG_FDEST, "HDR: data_sz=%ld, flags=0x%X", hdr->data_sz, hdr->flags));
     root_comm = MPIDIG_context_id_to_comm(hdr->context_id);
-    fprintf(stdout,"%ld, callback, root_comm = %x, context id = %d, comm_seq = %d\n",pthread_self(),root_comm->handle, root_comm->context_id, root_comm->seq);
+    fprintf(stdout,"thread %ld, callback, root_comm = %x, context id = %d, comm_seq = %d\n",pthread_self(),root_comm->handle, root_comm->context_id, root_comm->seq);
     if (root_comm) {
       root_comm_retry:
         /* MPIDI_CS_ENTER(); */
