@@ -10,7 +10,7 @@
 #include "mpidu_genq.h"
 
 MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDIG_request_create(MPIR_Request_kind_t kind,
-                                                             int ref_count)
+                                                             int ref_count, int vni)
 {
     MPIR_Request *req;
     int i;

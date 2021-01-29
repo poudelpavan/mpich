@@ -62,7 +62,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isend(int rank,
 
     MPIDI_Datatype_check_size(datatype, count, data_sz);
 
-    ep = MPIDI_UCX_COMM_TO_EP(comm, rank, 0, 0);
+    ep = MPIDI_UCX_COMM_TO_EP(comm, rank, vni_src, vni_dst);
     ucx_tag = MPIDI_UCX_init_tag(0, MPIR_Process.comm_world->rank, MPIDI_UCX_AM_TAG);
 
     /* initialize our portion of the hdr */
