@@ -140,6 +140,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_do_irecv(void *buf, MPI_Aint count, MPI_Data
     unexp_req = MPIDIG_dequeue_unexp(rank, tag, context_id, &MPIDIG_COMM(root_comm, unexp_list));
 
     if (unexp_req) {
+        fprintf(stdout,"thread %ld, unexp_req, context_id = %d\n", pthread_self(),context_id);
         MPIR_Comm_release(root_comm);   /* -1 for removing from unexp_list */
         if (MPIDIG_REQUEST(unexp_req, req->status) & MPIDIG_REQ_BUSY) {
             MPIDIG_REQUEST(unexp_req, req->status) |= MPIDIG_REQ_MATCHED;
@@ -253,7 +254,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_do_irecv(void *buf, MPI_Aint count, MPI_Data
         /* Increment refcnt for comm before posting rreq to posted_list,
          * to make sure comm is alive while holding an entry in the posted_list */
         MPIR_Comm_add_ref(root_comm);
-        MPIDIG_enqueue_posted(rreq, &MPIDIG_COMM(root_comm, posted_list));
+        if (tag == 0)
+            fprintf(stdout, "thread %ld, !unexp_req, enqueue_posted\n", pthread_self());
+        MPIDIG_enqueue_posted(rreq, &MPIDIG_COMM(root_comm, posted_list));        
         /* MPIDI_CS_EXIT(); */
     } else {
         MPIDIG_REQUEST(unexp_req, req->rreq.match_req) = rreq;
@@ -346,6 +349,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_irecv(void *buf,
     /* For anysource recv, we may be called while holding the vci lock of shm request (to
      * prevent shm progress). Therefore, recursive locking is allowed here */
     MPID_THREAD_CS_ENTER_REC_VCI(MPIDI_VCI(vni_dst).lock);
+    if(tag == 0)
+        fprintf(stdout,"(recv)thread %ld, vni_src = %d, vni_dst = %d, comm = %x,context_id=%d, tag = %d\n",pthread_self(),vni_src,vni_dst,comm->handle,comm->context_id,tag);
 
     mpi_errno =
         MPIDIG_do_irecv(buf, count, datatype, rank, tag, comm, context_offset, request, 1, 0ULL);

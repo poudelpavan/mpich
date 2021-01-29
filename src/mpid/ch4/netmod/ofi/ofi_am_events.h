@@ -172,6 +172,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_rdma_read(void *dst,
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_DO_RDMA_READ);
 
     rem = data_sz;
+    int vni_src = 0, vni_dst = 0;
 
     while (done != data_sz) {
         curr_len = MPL_MIN(rem, MPIDI_OFI_global.max_msg_size);
@@ -183,6 +184,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_rdma_read(void *dst,
         am_req->req_hdr = MPIDI_OFI_AMREQUEST(rreq, req_hdr);
         am_req->event_id = MPIDI_OFI_EVENT_AM_READ;
         comm = MPIDIG_context_id_to_comm(context_id);
+        vni_src = comm->seq % MPIDI_CH4_MAX_VCIS;
+        vni_dst = comm->seq % MPIDI_CH4_MAX_VCIS;
         MPIR_Assert(comm);
         MPIDI_OFI_cntr_incr();
 

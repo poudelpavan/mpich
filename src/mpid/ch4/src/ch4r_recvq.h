@@ -40,22 +40,26 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_match_unexp(int rank, int tag,
 
 MPL_STATIC_INLINE_PREFIX void MPIDIG_enqueue_posted(MPIR_Request * req, MPIDIG_rreq_t ** list)
 {
+    fprintf(stdout,"thread %ld, before enqueue_posted, list = %p, *list = %p\n",pthread_self(),list,*list);
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_ENQUEUE_POSTED);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_ENQUEUE_POSTED);
     MPIDIG_REQUEST(req, req->rreq.request) = req;
     DL_APPEND(*list, &req->dev.ch4.am.req->rreq);
     MPIR_T_PVAR_LEVEL_INC(RECVQ, posted_recvq_length, 1);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_ENQUEUE_POSTED);
+    fprintf(stdout,"thread %ld, handle = %x, after enqueue_posted, list = %p, *list = %p\n",pthread_self(),req->handle,list,*list);
 }
 
 MPL_STATIC_INLINE_PREFIX void MPIDIG_enqueue_unexp(MPIR_Request * req, MPIDIG_rreq_t ** list)
 {
+    fprintf(stdout,"thread %ld, before enqueue_unexp, list = %p, *list = %p\n",pthread_self(),list,*list);
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_ENQUEUE_UNEXP);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_ENQUEUE_UNEXP);
     MPIDIG_REQUEST(req, req->rreq.request) = req;
     DL_APPEND(*list, &req->dev.ch4.am.req->rreq);
     MPIR_T_PVAR_LEVEL_INC(RECVQ, unexpected_recvq_length, 1);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_ENQUEUE_UNEXP);
+    fprintf(stdout,"thread %ld, handle = %x, after enqueue_unexp, list = %p, *list = %p\n",pthread_self(),req->handle,list,*list);
 }
 
 MPL_STATIC_INLINE_PREFIX void MPIDIG_delete_unexp(MPIR_Request * req, MPIDIG_rreq_t ** list)
@@ -97,6 +101,8 @@ MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDIG_dequeue_unexp(int rank, int tag,
                                                             MPIR_Context_id_t context_id,
                                                             MPIDIG_rreq_t ** list)
 {
+    if(tag == 0)
+        fprintf(stdout,"thread %ld, before dequeue_unexp, list = %p, *list = %p\n",pthread_self(),list,*list);
     MPIDIG_rreq_t *curr, *tmp;
     MPIR_Request *req = NULL;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_DEQUEUE_UNEXP);
@@ -115,6 +121,8 @@ MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDIG_dequeue_unexp(int rank, int tag,
     }
     MPIR_T_PVAR_TIMER_END(RECVQ, time_matching_unexpectedq);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_DEQUEUE_UNEXP);
+    if(req && tag == 0)
+        fprintf(stdout,"thread %ld, handle = %x, after dequeue_unexp, list = %p, *list = %p\n",pthread_self(),req->handle,list,*list);
     return req;
 }
 
@@ -145,6 +153,8 @@ MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDIG_dequeue_posted(int rank, int tag,
                                                              MPIR_Context_id_t context_id,
                                                              int is_local, MPIDIG_rreq_t ** list)
 {
+    if(tag == 0)
+        fprintf(stdout,"thread id = %ld, before dequeue_posted, list = %p, *list = %p\n",pthread_self(),list,*list);
     MPIR_Request *req = NULL;
     MPIDIG_rreq_t *curr, *tmp;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_DEQUEUE_POSTED);
@@ -170,6 +180,8 @@ MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDIG_dequeue_posted(int rank, int tag,
         MPIR_T_PVAR_TIMER_END(RECVQ, time_failed_matching_postedq);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_DEQUEUE_POSTED);
+    if(req && tag == 0)
+        fprintf(stdout,"thread %ld, handle=%x, after dequeue_posted, list = %p, *list = %p\n",pthread_self(),req->handle,list,*list);
     return req;
 }
 

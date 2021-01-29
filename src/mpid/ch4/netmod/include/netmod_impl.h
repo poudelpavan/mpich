@@ -28,7 +28,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_send_hdr(int rank, MPIR_Comm * comm, in
 MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isend(int rank, MPIR_Comm * comm, int handler_id,
                                                const void *am_hdr, size_t am_hdr_sz,
                                                const void *data, MPI_Count count,
-                                               MPI_Datatype datatype, MPIR_Request * sreq)
+                                               MPI_Datatype datatype, int vni_src, int vni_dst, MPIR_Request * sreq)
 {
     int ret;
 

@@ -310,6 +310,7 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
     MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
                     (MPL_DBG_FDEST, "HDR: data_sz=%ld, flags=0x%X", hdr->data_sz, hdr->flags));
     root_comm = MPIDIG_context_id_to_comm(hdr->context_id);
+    fprintf(stdout,"%ld, callback, root_comm = %x, context id = %d, comm_seq = %d\n",pthread_self(),root_comm->handle, root_comm->context_id, root_comm->seq);
     if (root_comm) {
       root_comm_retry:
         /* MPIDI_CS_ENTER(); */
@@ -334,7 +335,8 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
     }
 
     if (rreq == NULL) {
-        rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RECV, 2);
+        fprintf(stdout,"thread %ld, rreq = NULL, enqueue_unexp\n",pthread_self());
+        rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RECV, 2, root_comm->seq);
         MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
         /* for unexpected message, always recv as MPI_BYTE into unexpected buffer. They will be
          * set to the recv side datatype and count when it is matched */
@@ -377,10 +379,11 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
 #ifndef MPIDI_CH4_DIRECT_NETMOD
         MPIDI_REQUEST(rreq, is_local) = is_local;
 #endif
-        MPID_THREAD_CS_ENTER(VCI, MPIDIU_THREAD_MPIDIG_GLOBAL_MUTEX);
+        // MPID_THREAD_CS_ENTER(VCI, MPIDIU_THREAD_MPIDIG_GLOBAL_MUTEX);
         if (root_comm) {
             MPIR_Comm_add_ref(root_comm);
-            MPIDIG_enqueue_unexp(rreq, &MPIDIG_COMM(root_comm, unexp_list));
+            fprintf(stdout,"thread %ld, enqueue_unexp, context_id = %d.\n",pthread_self(),hdr->context_id);
+            MPIDIG_enqueue_unexp(rreq, &MPIDIG_COMM(root_comm, unexp_list));            
         } else {
             MPIR_Comm *root_comm_again;
             /* This branch means that last time we checked, there was no communicator
@@ -392,8 +395,8 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
              * Here that strategy is to query root_comm again, and if found,
              * simply re-execute the per-communicator enqueue logic above. */
             root_comm_again = MPIDIG_context_id_to_comm(hdr->context_id);
-            if (unlikely(root_comm_again != NULL)) {
-                MPID_THREAD_CS_EXIT(VCI, MPIDIU_THREAD_MPIDIG_GLOBAL_MUTEX);
+            if (unlikely(root_comm_again != NULL)) {                
+                // MPID_THREAD_CS_EXIT(VCI, MPIDIU_THREAD_MPIDIG_GLOBAL_MUTEX);
                 MPIDU_genq_private_pool_free_cell(MPIDI_global.unexp_pack_buf_pool,
                                                   MPIDIG_REQUEST(rreq, buffer));
                 MPIR_Request_free_unsafe(rreq);
@@ -404,7 +407,7 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
             }
             MPIDIG_enqueue_unexp(rreq, MPIDIG_context_id_to_uelist(hdr->context_id));
         }
-        MPID_THREAD_CS_EXIT(VCI, MPIDIU_THREAD_MPIDIG_GLOBAL_MUTEX);
+        // MPID_THREAD_CS_EXIT(VCI, MPIDIU_THREAD_MPIDIG_GLOBAL_MUTEX);
 
         /* at this point, we have created and enqueued the unexpected request. If the request is
          * ready for recv, we increase the seq_no and init the recv */

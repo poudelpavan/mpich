@@ -14,6 +14,8 @@ static int handle_deferred_ops(void)
 
     int mpi_errno = MPI_SUCCESS;
     MPIDI_OFI_deferred_am_isend_req_t *dreq = MPIDI_OFI_global.deferred_am_isend_q;
+    int vni_src = dreq->comm->seq % MPIDI_CH4_MAX_VCIS;
+    int vni_dst = dreq->comm->seq % MPIDI_CH4_MAX_VCIS;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_HANDLE_DEFERRED_OPS);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_HANDLE_DEFERRED_OPS);
@@ -23,7 +25,7 @@ static int handle_deferred_ops(void)
             case MPIDI_OFI_DEFERRED_AM_OP__ISEND_EAGER:
                 mpi_errno = MPIDI_OFI_do_am_isend_eager(dreq->rank, dreq->comm, dreq->handler_id,
                                                         NULL, 0, dreq->buf, dreq->count,
-                                                        dreq->datatype, dreq->sreq, true);
+                                                        dreq->datatype, vni_src, vni_dst, dreq->sreq, true);
                 break;
             case MPIDI_OFI_DEFERRED_AM_OP__ISEND_PIPELINE:
                 mpi_errno = MPIDI_OFI_do_am_isend_pipeline(dreq->rank, dreq->comm, dreq->handler_id,

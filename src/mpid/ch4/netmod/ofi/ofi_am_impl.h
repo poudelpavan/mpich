@@ -13,7 +13,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_progress_do_queue(int vni_idx);
 
 /* Acquire a sequence number to send, and record the next number */
 MPL_STATIC_INLINE_PREFIX uint16_t MPIDI_OFI_am_fetch_incr_send_seqno(MPIR_Comm * comm,
-                                                                     int dest_rank)
+                                                                     int dest_rank, int vni_src, int vni_dst)
 {
     fi_addr_t addr = MPIDI_OFI_comm_to_phys(comm, dest_rank, 0, 0);
     uint64_t id = addr;
@@ -185,6 +185,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_long(int rank, MPIR_Comm * comm,
                                                      const void *data, MPI_Aint data_sz,
                                                      MPIR_Request * sreq)
 {
+    fprintf(stdout, "%ld, MPIDI_OFI_am_isend_long\n", pthread_self());
+    int vni_src = comm->seq % MPIDI_CH4_MAX_VCIS;
+    int vni_dst = comm->seq % MPIDI_CH4_MAX_VCIS;
     int mpi_errno = MPI_SUCCESS, c;
     MPIDI_OFI_am_header_t *msg_hdr;
     MPIDI_OFI_lmt_msg_payload_t *lmt_info;
@@ -201,7 +204,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_long(int rank, MPIR_Comm * comm,
     msg_hdr->am_hdr_sz = MPIDI_OFI_AMREQUEST_HDR(sreq, am_hdr_sz);
     msg_hdr->payload_sz = 0;    /* LMT info sent as header */
     msg_hdr->am_type = MPIDI_AMTYPE_RDMA_READ;
-    msg_hdr->seqno = MPIDI_OFI_am_fetch_incr_send_seqno(comm, rank);
+    msg_hdr->seqno = MPIDI_OFI_am_fetch_incr_send_seqno(comm, rank, 0, 0);
     msg_hdr->fi_src_addr
         = MPIDI_OFI_comm_to_phys(MPIR_Process.comm_world, MPIR_Process.comm_world->rank, 0, 0);
 
@@ -259,7 +262,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_long(int rank, MPIR_Comm * comm,
 }
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_short(int rank, MPIR_Comm * comm, int handler_id,
-                                                      const void *data, MPI_Aint data_sz,
+                                                      const void *data, MPI_Aint data_sz, int vni_src, int vni_dst,
                                                       MPIR_Request * sreq)
 {
     int mpi_errno = MPI_SUCCESS, c;
@@ -278,7 +281,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_short(int rank, MPIR_Comm * comm
     msg_hdr->am_hdr_sz = MPIDI_OFI_AMREQUEST_HDR(sreq, am_hdr_sz);
     msg_hdr->payload_sz = data_sz;
     msg_hdr->am_type = MPIDI_AMTYPE_SHORT;
-    msg_hdr->seqno = MPIDI_OFI_am_fetch_incr_send_seqno(comm, rank);
+    msg_hdr->seqno = MPIDI_OFI_am_fetch_incr_send_seqno(comm, rank, 0, 0);
     msg_hdr->fi_src_addr
         = MPIDI_OFI_comm_to_phys(MPIR_Process.comm_world, MPIR_Process.comm_world->rank, 0, 0);
 
@@ -311,6 +314,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_pipeline(int rank, MPIR_Comm * c
                                                          MPIDI_OFI_am_send_pipeline_request_t *
                                                          send_req)
 {
+    fprintf(stdout, "%ld, MPIDI_OFI_am_isend_pipeline\n", pthread_self());
+    int vni_src = comm->seq % MPIDI_CH4_MAX_VCIS;
+    int vni_dst = comm->seq % MPIDI_CH4_MAX_VCIS;
     int mpi_errno = MPI_SUCCESS, c;
     MPIDI_OFI_am_header_t *msg_hdr;
     struct iovec *iov;
@@ -326,7 +332,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_pipeline(int rank, MPIR_Comm * c
     msg_hdr->handler_id = handler_id;
     msg_hdr->payload_sz = seg_sz;
     msg_hdr->am_type = MPIDI_AMTYPE_PIPELINE;
-    msg_hdr->seqno = MPIDI_OFI_am_fetch_incr_send_seqno(comm, rank);
+    msg_hdr->seqno = MPIDI_OFI_am_fetch_incr_send_seqno(comm, rank, 0, 0);
     msg_hdr->fi_src_addr
         = MPIDI_OFI_comm_to_phys(MPIR_Process.comm_world, MPIR_Process.comm_world->rank, 0, 0);
 
@@ -367,7 +373,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_pipeline(int rank, MPIR_Comm * c
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_eager(int rank, MPIR_Comm * comm,
                                                          int handler_id, const void *am_hdr,
                                                          size_t am_hdr_sz, const void *buf,
-                                                         size_t count, MPI_Datatype datatype,
+                                                         size_t count, MPI_Datatype datatype, int vni_src, int vni_dst,
                                                          MPIR_Request * sreq, bool issue_deferred)
 {
     int dt_contig, mpi_errno = MPI_SUCCESS;
@@ -437,7 +443,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_eager(int rank, MPIR_Comm * c
                     (MPL_DBG_FDEST,
                      "issue eager seg for req handle=0x%x send_size %ld", sreq->handle, data_sz));
 
-    mpi_errno = MPIDI_OFI_am_isend_short(rank, comm, handler_id, send_buf, data_sz, sreq);
+    mpi_errno = MPIDI_OFI_am_isend_short(rank, comm, handler_id, send_buf, data_sz, 0, 0, sreq);
     MPIR_ERR_CHECK(mpi_errno);
     if (issue_deferred) {
         DL_DELETE(MPIDI_OFI_global.deferred_am_isend_q, MPIDI_OFI_AMREQUEST(sreq, deferred_req));
@@ -509,6 +515,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_inject(int rank,
     char *buff;
     size_t buff_len;
     MPIR_CHKLMEM_DECL(1);
+    int vni_src = comm->seq % MPIDI_CH4_MAX_VCIS;
+    int vni_dst = comm->seq % MPIDI_CH4_MAX_VCIS;
+    fprintf(stdout,"thread %ld, comm = %x, vni_src = %d, vni_dst = %d\n",pthread_self(), comm->handle, vni_src, vni_dst);
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_DO_INJECT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_DO_INJECT);
@@ -520,7 +529,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_inject(int rank,
     msg_hdr.am_hdr_sz = am_hdr_sz;
     msg_hdr.payload_sz = 0;
     msg_hdr.am_type = MPIDI_AMTYPE_SHORT_HDR;
-    msg_hdr.seqno = MPIDI_OFI_am_fetch_incr_send_seqno(comm, rank);
+    msg_hdr.seqno = MPIDI_OFI_am_fetch_incr_send_seqno(comm, rank, 0, 0);
     msg_hdr.fi_src_addr
         = MPIDI_OFI_comm_to_phys(MPIR_Process.comm_world, MPIR_Process.comm_world->rank, 0, 0);
 
