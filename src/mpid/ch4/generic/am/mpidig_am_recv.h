@@ -133,12 +133,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_do_irecv(void *buf, MPI_Aint count, MPI_Data
     MPIR_Request *rreq = NULL, *unexp_req = NULL;
     MPIR_Context_id_t context_id = comm->recvcontext_id + context_offset;
     MPIR_Comm *root_comm;
+    int vci;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_DO_IRECV);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_DO_IRECV);
 
     root_comm = MPIDIG_context_id_to_comm(context_id);
-    fprintf(stdout,"thread %ld, irecv, root_comm = %x, context_id = %d, context_offset = %d\n", pthread_self(),root_comm->handle, context_id,context_offset);
-    unexp_req = MPIDIG_dequeue_unexp(rank, tag, context_id, &MPIDIG_COMM(root_comm, unexp_list));
+    vci = root_comm->seq % MPIDI_CH4_MAX_VCIS;
+    fprintf(stdout,"thread %ld, irecv, root_comm = %x, seq no = %d, context_id = %d, context_offset = %d, vci = %d, checked unexp_list = %p\n", pthread_self(),root_comm->handle, root_comm->seq, context_id,context_offset, vci, MPIDI_global.unexp_lst[vci]);
+    unexp_req = MPIDIG_dequeue_unexp(rank, tag, context_id, &MPIDI_global.unexp_lst[vci]);
 
     if (unexp_req) {
         fprintf(stdout,"thread %ld, unexp_req, context_id = %d\n", pthread_self(),context_id);
@@ -257,7 +259,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_do_irecv(void *buf, MPI_Aint count, MPI_Data
         MPIR_Comm_add_ref(root_comm);
         if (tag == 0)
             fprintf(stdout, "thread %ld, !unexp_req, enqueue_posted\n", pthread_self());
-        MPIDIG_enqueue_posted(rreq, &MPIDIG_COMM(root_comm, posted_list));        
+        MPIDIG_enqueue_posted(rreq, &MPIDI_global.posted_lst[vci]);  
         /* MPIDI_CS_EXIT(); */
     } else {
         MPIDIG_REQUEST(unexp_req, req->rreq.match_req) = rreq;
@@ -369,6 +371,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_cancel_recv(MPIR_Request * rreq)
 {
     int mpi_errno = MPI_SUCCESS, found;
     MPIR_Comm *root_comm;
+    int vci;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_MPI_CANCEL_RECV);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_MPI_CANCEL_RECV);
@@ -376,11 +379,12 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_cancel_recv(MPIR_Request * rreq)
     if (!MPIR_Request_is_complete(rreq) &&
         !MPIR_STATUS_GET_CANCEL_BIT(rreq->status) && !MPIDIG_REQUEST_IN_PROGRESS(rreq)) {
         root_comm = MPIDIG_context_id_to_comm(MPIDIG_REQUEST(rreq, context_id));
+        vci = root_comm->seq % MPIDI_CH4_MAX_VCIS;
 
         /* MPIDI_CS_ENTER(); */
         found =
             MPIDIG_delete_posted(&MPIDIG_REQUEST(rreq, req->rreq),
-                                 &MPIDIG_COMM(root_comm, posted_list));
+                                 &MPIDI_global.posted_lst[vci]);
         /* MPIDI_CS_EXIT(); */
 
         if (found) {

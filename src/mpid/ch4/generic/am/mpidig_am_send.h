@@ -122,7 +122,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_isend(const void *buf,
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_MPI_ISEND);
     MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vni_src).lock);
     if(tag == 0)
-        fprintf(stdout,"(send)thread %ld, vni_src = %d, comm = %x, context_id=%d tag = %d, buf_val = %d\n",pthread_self(),vni_src,comm->handle,comm->context_id,tag, *(int *)buf);
+        fprintf(stdout,"(send)thread %ld, vni_src = %d, comm = %x, context_id=%d, seq no = %d\n",pthread_self(),vni_src,comm->handle,comm->context_id,comm->seq);
 
     mpi_errno =
         MPIDIG_isend_impl(buf, count, datatype, rank, tag, comm, context_offset, addr, vni_src, vni_dst,
@@ -193,7 +193,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_irsend(const void *buf,
 {
 	fprintf(stdout, "thread %ld, MPIDIG_mpi_irsend\n", pthread_self());
     int vni_src = comm->seq % MPIDI_CH4_MAX_VCIS;
-    int vni_dst = comm->seq % MPIDI_CH4_MAX_VCIS;    int mpi_errno = MPI_SUCCESS;
+    int vni_dst = comm->seq % MPIDI_CH4_MAX_VCIS;
+	int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_MPI_IRSEND);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_MPI_IRSEND);
     MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vni_src).lock);
@@ -216,7 +217,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_issend(const void *buf,
 {
 	fprintf(stdout, "thread %ld, MPIDIG_mpi_issend\n", pthread_self());
     int vni_src = comm->seq % MPIDI_CH4_MAX_VCIS;
-    int vni_dst = comm->seq % MPIDI_CH4_MAX_VCIS;    int mpi_errno = MPI_SUCCESS;
+    int vni_dst = comm->seq % MPIDI_CH4_MAX_VCIS;
+	int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_MPI_ISSEND);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_MPI_ISSEND);
     MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vni_src).lock);

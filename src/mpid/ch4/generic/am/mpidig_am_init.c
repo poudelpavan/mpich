@@ -118,6 +118,7 @@ void MPIDIG_am_reg_cb(int handler_id,
 
 int MPIDIG_am_init(void)
 {
+    int i;
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_AM_INIT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_AM_INIT);
@@ -130,6 +131,11 @@ int MPIDIG_am_init(void)
     MPIDI_global.unexp_list = NULL;
 #endif
 
+    for(i = 0; i < MPIDI_CH4_MAX_VCIS; i++)
+    {
+        MPIDI_global.posted_lst[i] = NULL;
+        MPIDI_global.unexp_lst[i] = NULL;
+    }
     MPIDI_global.cmpl_list = NULL;
     MPL_atomic_store_uint64(&MPIDI_global.exp_seq_no, 0);
     MPL_atomic_store_uint64(&MPIDI_global.nxt_seq_no, 0);

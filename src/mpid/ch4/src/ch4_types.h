@@ -264,6 +264,9 @@ typedef struct MPIDI_CH4_Global_t {
     int n_vcis;
     MPIDI_vci_t vci[MPIDI_CH4_MAX_VCIS];
     int progress_counts[MPIDI_CH4_MAX_VCIS];
+    /* Allocate per-vci queue */
+    MPIDIG_rreq_t *posted_lst[MPIDI_CH4_MAX_VCIS];
+    MPIDIG_rreq_t *unexp_lst[MPIDI_CH4_MAX_VCIS];
 
 #if defined(MPIDI_CH4_USE_WORK_QUEUES)
     /* TODO: move into MPIDI_vci to have per-vci workqueue */
