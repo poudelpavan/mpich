@@ -598,6 +598,80 @@ static int dynproc_send_disconnect(int conn_id)
     goto fn_exit;
 }
 
+int init_am(int vni){
+    int mpi_errno = MPI_SUCCESS, i; 
+    size_t optlen;
+    /* ---------------------------------- */
+    /* Initialize Active Message          */
+    /* ---------------------------------- */
+    if (MPIDI_OFI_ENABLE_AM) {
+        /* Maximum possible message size for short message send (=eager send)
+         * See MPIDI_OFI_do_am_isend for short/long switching logic */
+        MPIR_Assert(MPIDI_OFI_DEFAULT_SHORT_SEND_SIZE <= MPIDI_OFI_global.max_msg_size);
+        MPL_COMPILE_TIME_ASSERT(sizeof(MPIDI_OFI_am_request_header_t)
+                                < MPIDI_OFI_AM_HDR_POOL_CELL_SIZE);
+        MPL_COMPILE_TIME_ASSERT(MPIDI_OFI_AM_HDR_POOL_CELL_SIZE
+                                >= sizeof(MPIDI_OFI_am_send_pipeline_request_t));
+        mpi_errno =
+            MPIDU_genq_private_pool_create_unsafe(MPIDI_OFI_AM_HDR_POOL_CELL_SIZE,
+                                                  MPIDI_OFI_AM_HDR_POOL_NUM_CELLS_PER_CHUNK,
+                                                  MPIDI_OFI_AM_HDR_POOL_MAX_NUM_CELLS,
+                                                  host_alloc, host_free,
+                                                  &MPIDI_OFI_global.am_hdr_buf_pool);
+        MPIR_ERR_CHECK(mpi_errno);
+
+        MPIDI_OFI_global.cq_buffered_dynamic_head = MPIDI_OFI_global.cq_buffered_dynamic_tail =
+            NULL;
+        MPIDI_OFI_global.cq_buffered_static_head = MPIDI_OFI_global.cq_buffered_static_tail = 0;
+        optlen = MPIDI_OFI_DEFAULT_SHORT_SEND_SIZE;
+
+        MPIDI_OFI_CALL(fi_setopt(&(MPIDI_OFI_global.ctx[vni].rx->fid),
+                                 FI_OPT_ENDPOINT,
+                                 FI_OPT_MIN_MULTI_RECV, &optlen, sizeof(optlen)), setopt);
+
+        MPIDIU_map_create(&MPIDI_OFI_global.am_recv_seq_tracker, MPL_MEM_BUFFER);
+        MPIDIU_map_create(&MPIDI_OFI_global.am_send_seq_tracker, MPL_MEM_BUFFER);
+        MPIDI_OFI_global.am_unordered_msgs = NULL;
+
+        for (i = 0; i < MPIDI_OFI_NUM_AM_BUFFERS; i++) {
+            MPL_gpu_malloc_host(&(MPIDI_OFI_global.am_bufs[i]), MPIDI_OFI_AM_BUFF_SZ);
+            MPIDI_OFI_global.am_reqs[i].event_id = MPIDI_OFI_EVENT_AM_RECV;
+            MPIDI_OFI_global.am_reqs[i].index = i;
+            MPIR_Assert(MPIDI_OFI_global.am_bufs[i]);
+            MPIDI_OFI_global.am_iov[i].iov_base = MPIDI_OFI_global.am_bufs[i];
+            MPIDI_OFI_global.am_iov[i].iov_len = MPIDI_OFI_AM_BUFF_SZ;
+            MPIDI_OFI_global.am_msg[i].msg_iov = &MPIDI_OFI_global.am_iov[i];
+            MPIDI_OFI_global.am_msg[i].desc = NULL;
+            MPIDI_OFI_global.am_msg[i].addr = FI_ADDR_UNSPEC;
+            MPIDI_OFI_global.am_msg[i].context = &MPIDI_OFI_global.am_reqs[i].context;
+            MPIDI_OFI_global.am_msg[i].iov_count = 1;
+            MPIDI_OFI_CALL_RETRY(fi_recvmsg(MPIDI_OFI_global.ctx[vni].rx,
+                                            &MPIDI_OFI_global.am_msg[i],
+                                            FI_MULTI_RECV | FI_COMPLETION), 0, prepost, FALSE);
+        }
+
+        MPIDIG_am_reg_cb(MPIDI_OFI_INTERNAL_HANDLER_CONTROL, NULL, &MPIDI_OFI_control_handler);
+        MPIDIG_am_reg_cb(MPIDI_OFI_AM_RDMA_READ_ACK, NULL, &MPIDI_OFI_am_rdma_read_ack_handler);
+    }
+    MPL_atomic_store_int(&MPIDI_OFI_global.am_inflight_inject_emus, 0);
+    MPL_atomic_store_int(&MPIDI_OFI_global.am_inflight_rma_send_mrs, 0);
+
+    /* Create pack buffer pool */
+    mpi_errno =
+        MPIDU_genq_private_pool_create_unsafe(MPIDI_OFI_DEFAULT_SHORT_SEND_SIZE,
+                                              MPIR_CVAR_CH4_OFI_NUM_PACK_BUFFERS_PER_CHUNK,
+                                              MPIR_CVAR_CH4_OFI_MAX_NUM_PACK_BUFFERS,
+                                              host_alloc_registered,
+                                              host_free_registered,
+                                              &MPIDI_OFI_global.pack_buf_pool);
+    MPIR_ERR_CHECK(mpi_errno);
+
+    /* Initalize RMA keys allocator */
+    MPIDI_OFI_mr_key_allocator_init();
+    fn_fail:
+    return mpi_errno;
+}
+
 int MPIDI_OFI_mpi_init_hook(int rank, int size, int appnum, int *tag_bits, MPIR_Comm * init_comm)
 {
     int mpi_errno = MPI_SUCCESS, i;
@@ -698,70 +772,7 @@ int MPIDI_OFI_mpi_init_hook(int rank, int size, int appnum, int *tag_bits, MPIR_
     /* ---------------------------------- */
     /* Initialize Active Message          */
     /* ---------------------------------- */
-    if (MPIDI_OFI_ENABLE_AM) {
-        /* Maximum possible message size for short message send (=eager send)
-         * See MPIDI_OFI_do_am_isend for short/long switching logic */
-        MPIR_Assert(MPIDI_OFI_DEFAULT_SHORT_SEND_SIZE <= MPIDI_OFI_global.max_msg_size);
-        MPL_COMPILE_TIME_ASSERT(sizeof(MPIDI_OFI_am_request_header_t)
-                                < MPIDI_OFI_AM_HDR_POOL_CELL_SIZE);
-        MPL_COMPILE_TIME_ASSERT(MPIDI_OFI_AM_HDR_POOL_CELL_SIZE
-                                >= sizeof(MPIDI_OFI_am_send_pipeline_request_t));
-        mpi_errno =
-            MPIDU_genq_private_pool_create_unsafe(MPIDI_OFI_AM_HDR_POOL_CELL_SIZE,
-                                                  MPIDI_OFI_AM_HDR_POOL_NUM_CELLS_PER_CHUNK,
-                                                  MPIDI_OFI_AM_HDR_POOL_MAX_NUM_CELLS,
-                                                  host_alloc, host_free,
-                                                  &MPIDI_OFI_global.am_hdr_buf_pool);
-        MPIR_ERR_CHECK(mpi_errno);
-
-        MPIDI_OFI_global.cq_buffered_dynamic_head = MPIDI_OFI_global.cq_buffered_dynamic_tail =
-            NULL;
-        MPIDI_OFI_global.cq_buffered_static_head = MPIDI_OFI_global.cq_buffered_static_tail = 0;
-        optlen = MPIDI_OFI_DEFAULT_SHORT_SEND_SIZE;
-
-        MPIDI_OFI_CALL(fi_setopt(&(MPIDI_OFI_global.ctx[0].rx->fid),
-                                 FI_OPT_ENDPOINT,
-                                 FI_OPT_MIN_MULTI_RECV, &optlen, sizeof(optlen)), setopt);
-
-        MPIDIU_map_create(&MPIDI_OFI_global.am_recv_seq_tracker, MPL_MEM_BUFFER);
-        MPIDIU_map_create(&MPIDI_OFI_global.am_send_seq_tracker, MPL_MEM_BUFFER);
-        MPIDI_OFI_global.am_unordered_msgs = NULL;
-
-        for (i = 0; i < MPIDI_OFI_NUM_AM_BUFFERS; i++) {
-            MPL_gpu_malloc_host(&(MPIDI_OFI_global.am_bufs[i]), MPIDI_OFI_AM_BUFF_SZ);
-            MPIDI_OFI_global.am_reqs[i].event_id = MPIDI_OFI_EVENT_AM_RECV;
-            MPIDI_OFI_global.am_reqs[i].index = i;
-            MPIR_Assert(MPIDI_OFI_global.am_bufs[i]);
-            MPIDI_OFI_global.am_iov[i].iov_base = MPIDI_OFI_global.am_bufs[i];
-            MPIDI_OFI_global.am_iov[i].iov_len = MPIDI_OFI_AM_BUFF_SZ;
-            MPIDI_OFI_global.am_msg[i].msg_iov = &MPIDI_OFI_global.am_iov[i];
-            MPIDI_OFI_global.am_msg[i].desc = NULL;
-            MPIDI_OFI_global.am_msg[i].addr = FI_ADDR_UNSPEC;
-            MPIDI_OFI_global.am_msg[i].context = &MPIDI_OFI_global.am_reqs[i].context;
-            MPIDI_OFI_global.am_msg[i].iov_count = 1;
-            MPIDI_OFI_CALL_RETRY(fi_recvmsg(MPIDI_OFI_global.ctx[0].rx,
-                                            &MPIDI_OFI_global.am_msg[i],
-                                            FI_MULTI_RECV | FI_COMPLETION), 0, prepost, FALSE);
-        }
-
-        MPIDIG_am_reg_cb(MPIDI_OFI_INTERNAL_HANDLER_CONTROL, NULL, &MPIDI_OFI_control_handler);
-        MPIDIG_am_reg_cb(MPIDI_OFI_AM_RDMA_READ_ACK, NULL, &MPIDI_OFI_am_rdma_read_ack_handler);
-    }
-    MPL_atomic_store_int(&MPIDI_OFI_global.am_inflight_inject_emus, 0);
-    MPL_atomic_store_int(&MPIDI_OFI_global.am_inflight_rma_send_mrs, 0);
-
-    /* Create pack buffer pool */
-    mpi_errno =
-        MPIDU_genq_private_pool_create_unsafe(MPIDI_OFI_DEFAULT_SHORT_SEND_SIZE,
-                                              MPIR_CVAR_CH4_OFI_NUM_PACK_BUFFERS_PER_CHUNK,
-                                              MPIR_CVAR_CH4_OFI_MAX_NUM_PACK_BUFFERS,
-                                              host_alloc_registered,
-                                              host_free_registered,
-                                              &MPIDI_OFI_global.pack_buf_pool);
-    MPIR_ERR_CHECK(mpi_errno);
-
-    /* Initalize RMA keys allocator */
-    MPIDI_OFI_mr_key_allocator_init();
+    mpi_errno = init_am(0);
 
     /* ------------------------------------------------- */
     /* Initialize Connection Manager for Dynamic Tasking */
@@ -876,10 +887,13 @@ int MPIDI_OFI_mpi_finalize_hook(void)
 
 int MPIDI_OFI_post_init(void)
 {
+    int i;
     int mpi_errno = MPI_SUCCESS;
     if (MPIDI_OFI_global.num_vnis > 1) {
         mpi_errno = addr_exchange_all_vnis();
     }
+    for(i = 1; i < MPIDI_OFI_global.num_vnis; i++)
+        mpi_errno = init_am(i);
     return mpi_errno;
 }
 
