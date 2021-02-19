@@ -87,7 +87,7 @@ MPL_STATIC_INLINE_PREFIX MPIDI_OFI_am_unordered_msg_t
 }
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_short_am(MPIDI_OFI_am_header_t * msg_hdr,
-                                                       void *am_hdr, void *p_data)
+                                                       void *am_hdr, void *p_data, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -96,7 +96,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_short_am(MPIDI_OFI_am_header_t * m
 
     /* note: setting is_local, is_async, req to 0, 0, NULL */
     MPIDIG_global.target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
-                                                       p_data, msg_hdr->payload_sz, 0, 0, NULL);
+                                                       p_data, msg_hdr->payload_sz, 0, 0, NULL, vci);
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_HANDLE_SHORT_AM);
@@ -105,7 +105,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_short_am(MPIDI_OFI_am_header_t * m
 
 /* this is called in am_recv_event in ofi_event.c on receiver side */
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_pipeline(MPIDI_OFI_am_header_t * msg_hdr,
-                                                       void *am_hdr, void *p_data)
+                                                       void *am_hdr, void *p_data, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
     int is_done = 0;
@@ -126,7 +126,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_pipeline(MPIDI_OFI_am_header_t * m
         /* no cached request, this must be the first segment */
         /* note: setting is_local, is_async, req to 0, 1, rreq */
         MPIDIG_global.target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr, p_data,
-                                                           msg_hdr->payload_sz, 0, 1, &rreq);
+                                                           msg_hdr->payload_sz, 0, 1, &rreq, vci);
         MPIDIG_recv_setup(rreq);
         MPIDIG_req_cache_add(MPIDI_OFI_global.req_map, (uint64_t) msg_hdr->fi_src_addr, rreq);
     }
@@ -143,7 +143,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_pipeline(MPIDI_OFI_am_header_t * m
 }
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_short_am_hdr(MPIDI_OFI_am_header_t * msg_hdr,
-                                                           void *am_hdr)
+                                                           void *am_hdr, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -151,7 +151,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_short_am_hdr(MPIDI_OFI_am_header_t
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_HANDLE_SHORT_AM_HDR);
 
     MPIDIG_global.target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
-                                                       NULL, 0, 0, 0, NULL);
+                                                       NULL, 0, 0, 0, NULL, vci);
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_HANDLE_SHORT_AM_HDR);
@@ -202,14 +202,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_rdma_read(void *dst,
             .msg_iov = &iov,
             .desc = NULL,
             .iov_count = 1,
-            .addr = MPIDI_OFI_comm_to_phys(comm, src_rank, 0, 0),
+            .addr = MPIDI_OFI_comm_to_phys(comm, src_rank, vni_src, vni_dst),
             .rma_iov = &rma_iov,
             .rma_iov_count = 1,
             .context = &am_req->context,
             .data = 0
         };
 
-        MPIDI_OFI_CALL_RETRY_AM(fi_readmsg(MPIDI_OFI_global.ctx[0].tx, &msg, FI_COMPLETION), read);
+        MPIDI_OFI_CALL_RETRY_AM(fi_readmsg(MPIDI_OFI_global.ctx[vni_src].tx, &msg, FI_COMPLETION), read, vni_src);
 
         done += curr_len;
         rem -= curr_len;
@@ -226,7 +226,7 @@ MPL_STATIC_INLINE_PREFIX void do_long_am_recv(MPI_Aint in_data_sz, MPIR_Request 
                                               MPIDI_OFI_lmt_msg_payload_t * lmt_msg);
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_rdma_read(MPIDI_OFI_am_header_t * msg_hdr,
                                                         void *am_hdr,
-                                                        MPIDI_OFI_lmt_msg_payload_t * lmt_msg)
+                                                        MPIDI_OFI_lmt_msg_payload_t * lmt_msg, int vci)
 {
     int c, mpi_errno = MPI_SUCCESS;
     MPIR_Request *rreq = NULL;
@@ -236,7 +236,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_rdma_read(MPIDI_OFI_am_header_t * 
 
     /* note: setting is_local, is_async to 0, 1 */
     MPIDIG_global.target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
-                                                       NULL, msg_hdr->payload_sz, 0, 1, &rreq);
+                                                       NULL, msg_hdr->payload_sz, 0, 1, &rreq, vci);
 
     if (!rreq)
         goto fn_exit;

@@ -268,10 +268,11 @@ MPL_STATIC_INLINE_PREFIX int MPID_Recv_init(void *buf,
     MPIR_Request *rreq;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_RECV_INIT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_RECV_INIT);
+    int vni = comm->seq % MPIDI_CH4_MAX_VCIS;
 
-    MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(0).lock);
-    rreq = MPIR_Request_create_from_pool(MPIR_REQUEST_KIND__PREQUEST_RECV, 0);
-    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(0).lock);
+    MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vni).lock);
+    rreq = MPIR_Request_create_from_pool(MPIR_REQUEST_KIND__PREQUEST_RECV, vni);
+    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vni).lock);
     MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
 
     *request = rreq;

@@ -297,7 +297,7 @@ int MPIDIG_send_data_origin_cb(MPIR_Request * sreq)
 }
 
 int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint in_data_sz,
-                              int is_local, int is_async, MPIR_Request ** req)
+                              int is_local, int is_async, MPIR_Request ** req, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *rreq = NULL;
@@ -336,7 +336,7 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
 
     if (rreq == NULL) {
         fprintf(stdout,"thread %ld, rreq = NULL, enqueue_unexp\n",pthread_self());
-        rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RECV, 2, root_comm->seq);
+        rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RECV, 2, vci);
         MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
         /* for unexpected message, always recv as MPI_BYTE into unexpected buffer. They will be
          * set to the recv side datatype and count when it is matched */

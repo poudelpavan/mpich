@@ -20,9 +20,9 @@ static int accept_probe_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq
 static int dynproc_done_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq);
 static int am_isend_event(struct fi_cq_tagged_entry *wc, MPIR_Request * sreq);
 static int am_isend_pipeline_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_me);
-static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq);
+static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int vci);
 static int am_read_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_me);
-static int am_repost_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq);
+static int am_repost_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int vni);
 
 static int cqe_get_source(struct fi_cq_tagged_entry *wc, bool has_err)
 {
@@ -579,7 +579,7 @@ static int am_isend_pipeline_event(struct fi_cq_tagged_entry *wc, MPIR_Request *
     goto fn_exit;
 }
 
-static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq)
+static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIDI_OFI_am_header_t *am_hdr;
@@ -631,7 +631,7 @@ static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq)
     void *p_data;
     switch (am_hdr->am_type) {
         case MPIDI_AMTYPE_SHORT_HDR:
-            mpi_errno = MPIDI_OFI_handle_short_am_hdr(am_hdr, am_hdr + 1 /* payload */);
+            mpi_errno = MPIDI_OFI_handle_short_am_hdr(am_hdr, am_hdr + 1 /* payload */, vci);
 
             MPIR_ERR_CHECK(mpi_errno);
 
@@ -640,14 +640,14 @@ static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq)
         case MPIDI_AMTYPE_SHORT:
             /* payload always in orig_buf */
             p_data = (char *) orig_buf + sizeof(*am_hdr) + am_hdr->am_hdr_sz;
-            mpi_errno = MPIDI_OFI_handle_short_am(am_hdr, am_hdr + 1, p_data);
+            mpi_errno = MPIDI_OFI_handle_short_am(am_hdr, am_hdr + 1, p_data, vci);
 
             MPIR_ERR_CHECK(mpi_errno);
 
             break;
         case MPIDI_AMTYPE_PIPELINE:
             p_data = (char *) wc->buf + sizeof(*am_hdr) + am_hdr->am_hdr_sz;
-            mpi_errno = MPIDI_OFI_handle_pipeline(am_hdr, am_hdr + 1, p_data);
+            mpi_errno = MPIDI_OFI_handle_pipeline(am_hdr, am_hdr + 1, p_data, vci);
             MPIR_ERR_CHECK(mpi_errno);
             break;
 
@@ -655,7 +655,7 @@ static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq)
             /* buffer always copied together (there is no payload, just LMT header) */
             p_data = (char *) am_hdr + sizeof(*am_hdr) + am_hdr->am_hdr_sz;
             mpi_errno = MPIDI_OFI_handle_rdma_read(am_hdr, am_hdr + 1,
-                                                   (MPIDI_OFI_lmt_msg_payload_t *) p_data);
+                                                   (MPIDI_OFI_lmt_msg_payload_t *) p_data, vci);
 
             MPIR_ERR_CHECK(mpi_errno);
 
@@ -727,19 +727,19 @@ static int am_read_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_
     goto fn_exit;
 }
 
-static int am_repost_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq)
+static int am_repost_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int vni)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_AM_REPOST_EVENT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_AM_REPOST_EVENT);
 
-    mpi_errno = MPIDI_OFI_repost_buffer(wc->op_context, rreq);
+    mpi_errno = MPIDI_OFI_repost_buffer(wc->op_context, rreq, vni);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_AM_REPOST_EVENT);
     return mpi_errno;
 }
 
-int MPIDI_OFI_dispatch_function(struct fi_cq_tagged_entry *wc, MPIR_Request * req)
+int MPIDI_OFI_dispatch_function(struct fi_cq_tagged_entry *wc, MPIR_Request * req, int vni)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -761,10 +761,10 @@ int MPIDI_OFI_dispatch_function(struct fi_cq_tagged_entry *wc, MPIR_Request * re
         goto fn_exit;
     } else if (likely(MPIDI_OFI_REQUEST(req, event_id) == MPIDI_OFI_EVENT_AM_RECV)) {
         if (wc->flags & FI_RECV)
-            mpi_errno = am_recv_event(wc, req);
+            mpi_errno = am_recv_event(wc, req, vni);
 
         if (unlikely(wc->flags & FI_MULTI_RECV))
-            mpi_errno = am_repost_event(wc, req);
+            mpi_errno = am_repost_event(wc, req, vni);
 
         goto fn_exit;
     } else if (likely(MPIDI_OFI_REQUEST(req, event_id) == MPIDI_OFI_EVENT_AM_READ)) {
@@ -865,7 +865,7 @@ int MPIDI_OFI_get_buffered(struct fi_cq_tagged_entry *wc, ssize_t num)
     return rc;
 }
 
-int MPIDI_OFI_handle_cq_entries(struct fi_cq_tagged_entry *wc, ssize_t num)
+int MPIDI_OFI_handle_cq_entries(struct fi_cq_tagged_entry *wc, ssize_t num, int vni)
 {
     int i, mpi_errno = MPI_SUCCESS;
     MPIR_Request *req;
@@ -874,7 +874,7 @@ int MPIDI_OFI_handle_cq_entries(struct fi_cq_tagged_entry *wc, ssize_t num)
 
     for (i = 0; i < num; i++) {
         req = MPIDI_OFI_context_to_request(wc[i].op_context);
-        mpi_errno = MPIDI_OFI_dispatch_function(&wc[i], req);
+        mpi_errno = MPIDI_OFI_dispatch_function(&wc[i], req, vni);
         MPIR_ERR_CHECK(mpi_errno);
     }
 
@@ -903,12 +903,12 @@ int MPIDI_OFI_handle_cq_error(int vni_idx, ssize_t ret)
 
                     switch (req->kind) {
                         case MPIR_REQUEST_KIND__SEND:
-                            mpi_errno = MPIDI_OFI_dispatch_function(NULL, req);
+                            mpi_errno = MPIDI_OFI_dispatch_function(NULL, req, vni_idx);
                             break;
 
                         case MPIR_REQUEST_KIND__RECV:
                             mpi_errno =
-                                MPIDI_OFI_dispatch_function((struct fi_cq_tagged_entry *) &e, req);
+                                MPIDI_OFI_dispatch_function((struct fi_cq_tagged_entry *) &e, req, vni_idx);
                             req->status.MPI_ERROR = MPI_ERR_TRUNCATE;
                             break;
 
