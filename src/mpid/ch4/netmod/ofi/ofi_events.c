@@ -15,13 +15,13 @@ static int send_huge_event(struct fi_cq_tagged_entry *wc, MPIR_Request * sreq);
 static int ssend_ack_event(struct fi_cq_tagged_entry *wc, MPIR_Request * sreq);
 static uintptr_t recv_rbase(MPIDI_OFI_huge_recv_t * recv);
 static int chunk_done_event(struct fi_cq_tagged_entry *wc, MPIR_Request * req);
-static int inject_emu_event(struct fi_cq_tagged_entry *wc, MPIR_Request * req);
+static int inject_emu_event(struct fi_cq_tagged_entry *wc, MPIR_Request * req, int vci);
 static int accept_probe_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq);
 static int dynproc_done_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq);
 static int am_isend_event(struct fi_cq_tagged_entry *wc, MPIR_Request * sreq);
-static int am_isend_pipeline_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_me);
+static int am_isend_pipeline_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_me, int vci);
 static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int vci);
-static int am_read_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_me);
+static int am_read_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_me, int vci);
 static int am_repost_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int vni);
 
 static int cqe_get_source(struct fi_cq_tagged_entry *wc, bool has_err)
@@ -476,7 +476,7 @@ static int chunk_done_event(struct fi_cq_tagged_entry *wc, MPIR_Request * req)
     return MPI_SUCCESS;
 }
 
-static int inject_emu_event(struct fi_cq_tagged_entry *wc, MPIR_Request * req)
+static int inject_emu_event(struct fi_cq_tagged_entry *wc, MPIR_Request * req, int vci)
 {
     int incomplete;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_INJECT_EMU_EVENT);
@@ -487,7 +487,7 @@ static int inject_emu_event(struct fi_cq_tagged_entry *wc, MPIR_Request * req)
     if (!incomplete) {
         MPL_free(MPIDI_OFI_REQUEST(req, util.inject_buf));
         MPIR_Request_free_unsafe(req);
-        MPL_atomic_fetch_sub_int(&MPIDI_OFI_global.am_inflight_inject_emus, 1);
+        MPL_atomic_fetch_sub_int(&MPIDI_OFI_global.am_list[vci].am_inflight_inject_emus, 1);
     }
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_INJECT_EMU_EVENT);
@@ -545,7 +545,7 @@ static int am_isend_event(struct fi_cq_tagged_entry *wc, MPIR_Request * sreq)
     goto fn_exit;
 }
 
-static int am_isend_pipeline_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_me)
+static int am_isend_pipeline_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_me, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIDI_OFI_am_header_t *msg_hdr;
@@ -609,7 +609,7 @@ static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int
     }
 #endif
 
-    expected_seqno = MPIDI_OFI_am_get_next_recv_seqno(am_hdr->fi_src_addr);
+    expected_seqno = MPIDI_OFI_am_get_next_recv_seqno(am_hdr->fi_src_addr, vci);
     if (am_hdr->seqno != expected_seqno) {
         /* This message came earlier than the one that we were expecting.
          * Put it in the queue to process it later. */
@@ -618,7 +618,7 @@ static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int
                          "Expected seqno=%d but got %d (am_type=%d addr=%" PRIx64 "). "
                          "Enqueueing it to the queue.\n",
                          expected_seqno, am_hdr->seqno, am_hdr->am_type, am_hdr->fi_src_addr));
-        mpi_errno = MPIDI_OFI_am_enqueue_unordered_msg(orig_buf);
+        mpi_errno = MPIDI_OFI_am_enqueue_unordered_msg(orig_buf, vci);
         MPIR_ERR_CHECK(mpi_errno);
         goto fn_exit;
     }
@@ -671,14 +671,14 @@ static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int
     MPL_free(uo_msg);
 
     /* See if we can process other messages in the queue */
-    if ((uo_msg = MPIDI_OFI_am_claim_unordered_msg(fi_src_addr, next_seqno)) != NULL) {
+    if ((uo_msg = MPIDI_OFI_am_claim_unordered_msg(fi_src_addr, next_seqno, vci)) != NULL) {
         am_hdr = &uo_msg->am_hdr;
         orig_buf = am_hdr;
         goto repeat;
     }
 
     /* Record the next expected sequence number from fi_src_addr */
-    MPIDI_OFI_am_set_next_recv_seqno(fi_src_addr, next_seqno);
+    MPIDI_OFI_am_set_next_recv_seqno(fi_src_addr, next_seqno, vci);
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_AM_RECV_EVENT);
@@ -687,7 +687,7 @@ static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int
     goto fn_exit;
 }
 
-static int am_read_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_me)
+static int am_read_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_me, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *rreq;
@@ -757,7 +757,7 @@ int MPIDI_OFI_dispatch_function(struct fi_cq_tagged_entry *wc, MPIR_Request * re
         mpi_errno = am_isend_event(wc, req);
         goto fn_exit;
     } else if (likely(MPIDI_OFI_REQUEST(req, event_id) == MPIDI_OFI_EVENT_AM_SEND_PIPELINE)) {
-        mpi_errno = am_isend_pipeline_event(wc, req);
+        mpi_errno = am_isend_pipeline_event(wc, req, vni);
         goto fn_exit;
     } else if (likely(MPIDI_OFI_REQUEST(req, event_id) == MPIDI_OFI_EVENT_AM_RECV)) {
         if (wc->flags & FI_RECV)
@@ -768,7 +768,7 @@ int MPIDI_OFI_dispatch_function(struct fi_cq_tagged_entry *wc, MPIR_Request * re
 
         goto fn_exit;
     } else if (likely(MPIDI_OFI_REQUEST(req, event_id) == MPIDI_OFI_EVENT_AM_READ)) {
-        mpi_errno = am_read_event(wc, req);
+        mpi_errno = am_read_event(wc, req, vni);
         goto fn_exit;
     } else if (unlikely(1)) {
         switch (MPIDI_OFI_REQUEST(req, event_id)) {
@@ -813,7 +813,7 @@ int MPIDI_OFI_dispatch_function(struct fi_cq_tagged_entry *wc, MPIR_Request * re
                 break;
 
             case MPIDI_OFI_EVENT_INJECT_EMU:
-                mpi_errno = inject_emu_event(wc, req);
+                mpi_errno = inject_emu_event(wc, req, vni);
                 break;
 
             case MPIDI_OFI_EVENT_DYNPROC_DONE:

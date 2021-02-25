@@ -629,32 +629,32 @@ int init_am(int vni){
                                  FI_OPT_ENDPOINT,
                                  FI_OPT_MIN_MULTI_RECV, &optlen, sizeof(optlen)), setopt);
 
-        MPIDIU_map_create(&MPIDI_OFI_global.am_recv_seq_tracker, MPL_MEM_BUFFER);
-        MPIDIU_map_create(&MPIDI_OFI_global.am_send_seq_tracker, MPL_MEM_BUFFER);
-        MPIDI_OFI_global.am_unordered_msgs = NULL;
+        MPIDIU_map_create(&MPIDI_OFI_global.am_list[vni].am_recv_seq_tracker, MPL_MEM_BUFFER);
+        MPIDIU_map_create(&MPIDI_OFI_global.am_list[vni].am_send_seq_tracker, MPL_MEM_BUFFER);
+        MPIDI_OFI_global.am_list[vni].am_unordered_msgs = NULL;
 
         for (i = 0; i < MPIDI_OFI_NUM_AM_BUFFERS; i++) {
-            MPL_gpu_malloc_host(&(MPIDI_OFI_global.am_bufs[i]), MPIDI_OFI_AM_BUFF_SZ);
-            MPIDI_OFI_global.am_reqs[i].event_id = MPIDI_OFI_EVENT_AM_RECV;
-            MPIDI_OFI_global.am_reqs[i].index = i;
-            MPIR_Assert(MPIDI_OFI_global.am_bufs[i]);
-            MPIDI_OFI_global.am_iov[i].iov_base = MPIDI_OFI_global.am_bufs[i];
-            MPIDI_OFI_global.am_iov[i].iov_len = MPIDI_OFI_AM_BUFF_SZ;
-            MPIDI_OFI_global.am_msg[i].msg_iov = &MPIDI_OFI_global.am_iov[i];
-            MPIDI_OFI_global.am_msg[i].desc = NULL;
-            MPIDI_OFI_global.am_msg[i].addr = FI_ADDR_UNSPEC;
-            MPIDI_OFI_global.am_msg[i].context = &MPIDI_OFI_global.am_reqs[i].context;
-            MPIDI_OFI_global.am_msg[i].iov_count = 1;
+            MPL_gpu_malloc_host(&(MPIDI_OFI_global.am_list[vni].am_bufs[i]), MPIDI_OFI_AM_BUFF_SZ);
+            MPIDI_OFI_global.am_list[vni].am_reqs[i].event_id = MPIDI_OFI_EVENT_AM_RECV;
+            MPIDI_OFI_global.am_list[vni].am_reqs[i].index = i;
+            MPIR_Assert(MPIDI_OFI_global.am_list[vni].am_bufs[i]);
+            MPIDI_OFI_global.am_list[vni].am_iov[i].iov_base = MPIDI_OFI_global.am_list[vni].am_bufs[i];
+            MPIDI_OFI_global.am_list[vni].am_iov[i].iov_len = MPIDI_OFI_AM_BUFF_SZ;
+            MPIDI_OFI_global.am_list[vni].am_msg[i].msg_iov = &MPIDI_OFI_global.am_list[vni].am_iov[i];
+            MPIDI_OFI_global.am_list[vni].am_msg[i].desc = NULL;
+            MPIDI_OFI_global.am_list[vni].am_msg[i].addr = FI_ADDR_UNSPEC;
+            MPIDI_OFI_global.am_list[vni].am_msg[i].context = &MPIDI_OFI_global.am_list[vni].am_reqs[i].context;
+            MPIDI_OFI_global.am_list[vni].am_msg[i].iov_count = 1;
             MPIDI_OFI_CALL_RETRY(fi_recvmsg(MPIDI_OFI_global.ctx[vni].rx,
-                                            &MPIDI_OFI_global.am_msg[i],
+                                            &MPIDI_OFI_global.am_list[vni].am_msg[i],
                                             FI_MULTI_RECV | FI_COMPLETION), 0, prepost, FALSE);
         }
 
         MPIDIG_am_reg_cb(MPIDI_OFI_INTERNAL_HANDLER_CONTROL, NULL, &MPIDI_OFI_control_handler);
         MPIDIG_am_reg_cb(MPIDI_OFI_AM_RDMA_READ_ACK, NULL, &MPIDI_OFI_am_rdma_read_ack_handler);
     }
-    MPL_atomic_store_int(&MPIDI_OFI_global.am_inflight_inject_emus, 0);
-    MPL_atomic_store_int(&MPIDI_OFI_global.am_inflight_rma_send_mrs, 0);
+    MPL_atomic_store_int(&MPIDI_OFI_global.am_list[vni].am_inflight_inject_emus, 0);
+    MPL_atomic_store_int(&MPIDI_OFI_global.am_list[vni].am_inflight_rma_send_mrs, 0);
 
     /* Create pack buffer pool */
     mpi_errno =
@@ -784,7 +784,9 @@ int MPIDI_OFI_mpi_init_hook(int rank, int size, int appnum, int *tag_bits, MPIR_
     /* index datatypes for RMA atomics */
     MPIDI_OFI_index_datatypes();
 
-    MPIDI_OFI_global.deferred_am_isend_q = NULL;
+    for(i = 0; i < MPIDI_OFI_global.num_vnis; i++){
+        MPIDI_OFI_global.am_list[i].deferred_am_isend_q = NULL;
+    }
 
   fn_exit:
     *tag_bits = MPIDI_OFI_TAG_BITS;
@@ -811,8 +813,10 @@ int MPIDI_OFI_mpi_finalize_hook(void)
 
     /* Progress until we drain all inflight RMA send long buffers */
     /* NOTE: am currently only use vni 0. Need update once that changes */
-    while (MPL_atomic_load_int(&MPIDI_OFI_global.am_inflight_rma_send_mrs) > 0)
-        MPIDI_OFI_PROGRESS(0);
+    for(i = 0; i < MPIDI_CH4_MAX_VCIS; i++){
+        while (MPL_atomic_load_int(&MPIDI_OFI_global.am_list[i].am_inflight_rma_send_mrs) > 0)
+            MPIDI_OFI_PROGRESS(0);
+    }    
 
     /* Destroy RMA key allocator */
     MPIDI_OFI_mr_key_allocator_destroy();
@@ -825,9 +829,11 @@ int MPIDI_OFI_mpi_finalize_hook(void)
 
     /* Progress until we drain all inflight injection emulation requests */
     /* NOTE: am currently only use vni 0. Need update once that changes */
-    while (MPL_atomic_load_int(&MPIDI_OFI_global.am_inflight_inject_emus) > 0)
-        MPIDI_OFI_PROGRESS(0);
-    MPIR_Assert(MPL_atomic_load_int(&MPIDI_OFI_global.am_inflight_inject_emus) == 0);
+    for(i = 0; i < MPIDI_CH4_MAX_VCIS; i++){
+        while (MPL_atomic_load_int(&MPIDI_OFI_global.am_list[i].am_inflight_inject_emus) > 0)
+            MPIDI_OFI_PROGRESS(0);
+        MPIR_Assert(MPL_atomic_load_int(&MPIDI_OFI_global.am_list[i].am_inflight_inject_emus) == 0);
+    }    
 
     /* Tearing down endpoints */
     for (i = 1; i < MPIDI_OFI_global.num_vnis; i++) {
@@ -845,16 +851,17 @@ int MPIDI_OFI_mpi_finalize_hook(void)
     MPIDIU_map_destroy(MPIDI_OFI_global.win_map);
     MPIDIU_map_destroy(MPIDI_OFI_global.req_map);
 
-    if (MPIDI_OFI_ENABLE_AM) {
-        while (MPIDI_OFI_global.am_unordered_msgs) {
-            MPIDI_OFI_am_unordered_msg_t *uo_msg = MPIDI_OFI_global.am_unordered_msgs;
-            DL_DELETE(MPIDI_OFI_global.am_unordered_msgs, uo_msg);
-        }
-        MPIDIU_map_destroy(MPIDI_OFI_global.am_send_seq_tracker);
-        MPIDIU_map_destroy(MPIDI_OFI_global.am_recv_seq_tracker);
-
-        for (i = 0; i < MPIDI_OFI_NUM_AM_BUFFERS; i++)
-            MPL_gpu_free_host(MPIDI_OFI_global.am_bufs[i]);
+    if (MPIDI_OFI_ENABLE_AM) {        
+        for(i = 0; i < MPIDI_CH4_MAX_VCIS; i++){
+            while (MPIDI_OFI_global.am_list[i].am_unordered_msgs) {
+                MPIDI_OFI_am_unordered_msg_t *uo_msg = MPIDI_OFI_global.am_list[i].am_unordered_msgs;
+                DL_DELETE(MPIDI_OFI_global.am_list[i].am_unordered_msgs, uo_msg);
+            }
+            MPIDIU_map_destroy(MPIDI_OFI_global.am_list[i].am_send_seq_tracker);
+            MPIDIU_map_destroy(MPIDI_OFI_global.am_list[i].am_recv_seq_tracker);
+            for (i = 0; i < MPIDI_OFI_NUM_AM_BUFFERS; i++)
+                MPL_gpu_free_host(MPIDI_OFI_global.am_list[i].am_bufs[i]);
+        } 
 
         MPIDU_genq_private_pool_destroy_unsafe(MPIDI_OFI_global.am_hdr_buf_pool);
 

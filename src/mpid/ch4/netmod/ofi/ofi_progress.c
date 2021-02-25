@@ -13,7 +13,7 @@ static int handle_deferred_ops(int vni)
 {
 
     int mpi_errno = MPI_SUCCESS;
-    MPIDI_OFI_deferred_am_isend_req_t *dreq = MPIDI_OFI_global.deferred_am_isend_q;
+    MPIDI_OFI_deferred_am_isend_req_t *dreq = MPIDI_OFI_global.am_list[vni].deferred_am_isend_q;
     int vni_src = vni; //dreq->comm->seq % MPIDI_CH4_MAX_VCIS;
     int vni_dst = vni; //dreq->comm->seq % MPIDI_CH4_MAX_VCIS;
 
@@ -30,13 +30,13 @@ static int handle_deferred_ops(int vni)
             case MPIDI_OFI_DEFERRED_AM_OP__ISEND_PIPELINE:
                 mpi_errno = MPIDI_OFI_do_am_isend_pipeline(dreq->rank, dreq->comm, dreq->handler_id,
                                                            NULL, 0, dreq->buf, dreq->count,
-                                                           dreq->datatype, dreq->sreq,
+                                                           dreq->datatype, vni_src, vni_dst, dreq->sreq,
                                                            dreq->data_sz, true);
                 break;
             case MPIDI_OFI_DEFERRED_AM_OP__ISEND_RDMA_READ:
                 mpi_errno = MPIDI_OFI_do_am_isend_rdma_read(dreq->rank, dreq->comm,
                                                             dreq->handler_id, NULL, 0, dreq->buf,
-                                                            dreq->count, dreq->datatype, dreq->sreq,
+                                                            dreq->count, dreq->datatype, vni_src, vni_dst, dreq->sreq,
                                                             true);
                 break;
             default:

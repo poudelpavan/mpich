@@ -304,7 +304,6 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
     MPIR_Comm *root_comm;
     MPIDIG_hdr_t *hdr = (MPIDIG_hdr_t *) am_hdr;
     void *pack_buf = NULL;
-    int count = 0;
     
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_SEND_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_SEND_TARGET_MSG_CB);
@@ -390,15 +389,9 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
         // MPID_THREAD_CS_ENTER(VCI, MPIDIU_THREAD_MPIDIG_GLOBAL_MUTEX);
         if (root_comm) {
             MPIR_Comm_add_ref(root_comm);
-            MPIDIG_enqueue_unexp(rreq, &MPIDI_global.unexp_lst[vci]);
-            fprintf(stdout,"thread %ld, enqueue_unexp, context_id = %d, enqueued to unexp_list = %p\n",pthread_self(), hdr->context_id, MPIDI_global.unexp_lst[vci]);
-                        
+            MPIDIG_enqueue_unexp(rreq, &MPIDI_global.unexp_lst[vci]);                
         } else {
-            if(count  == 0){
-                MPIDIG_enqueue_unexp(rreq, &MPIDI_global.unexp_lst[vci]);
-                fprintf(stdout,"thread %ld, enqueue_unexp, context_id = %d, enqueued to unexp_list = %p\n",pthread_self(), hdr->context_id, MPIDI_global.unexp_lst[vci]);
-                count++;
-            }
+            MPIDIG_enqueue_unexp(rreq, &MPIDI_global.unexp_lst[vci]);
             MPIR_Comm *root_comm_again;
             /* This branch means that last time we checked, there was no communicator
              * associated with the arriving message.

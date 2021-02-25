@@ -67,12 +67,12 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isend(int rank,
                 if (MPIDI_OFI_ENABLE_RMA && !MPIR_CVAR_CH4_OFI_AM_LONG_FORCE_PIPELINE) {
                     /* RDMA READ */
                     mpi_errno = MPIDI_OFI_do_am_isend_rdma_read(rank, comm, handler_id, am_hdr,
-                                                                am_hdr_sz, data, count, datatype,
+                                                                am_hdr_sz, data, count, datatype, vni_src, vni_dst,
                                                                 sreq, false);
                 } else {
                     /* PIPELINE */
                     mpi_errno = MPIDI_OFI_do_am_isend_pipeline(rank, comm, handler_id, am_hdr,
-                                                               am_hdr_sz, data, count, datatype,
+                                                               am_hdr_sz, data, count, datatype, vni_src, vni_dst,
                                                                sreq, data_sz, false);
                 }
             }
@@ -88,14 +88,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isend(int rank,
             break;
         case MPIDI_AMTYPE_PIPELINE:
             mpi_errno = MPIDI_OFI_do_am_isend_pipeline(rank, comm, handler_id, am_hdr, am_hdr_sz,
-                                                       data, count, datatype, sreq,
+                                                       data, count, datatype, vni_src, vni_dst, sreq,
                                                        MPIDI_OFI_AMREQUEST(sreq, data_sz), false);
             /* cleanup preselected amtype to avoid problem with reused request */
             MPIDI_OFI_AMREQUEST(sreq, am_type_choice) = MPIDI_AMTYPE_NONE;
             break;
         case MPIDI_AMTYPE_RDMA_READ:
             mpi_errno = MPIDI_OFI_do_am_isend_rdma_read(rank, comm, handler_id, am_hdr, am_hdr_sz,
-                                                        data, count, datatype, sreq, false);
+                                                        data, count, datatype, vni_src, vni_dst, sreq, false);
             /* cleanup preselected amtype to avoid problem with reused request */
             MPIDI_OFI_AMREQUEST(sreq, am_type_choice) = MPIDI_AMTYPE_NONE;
             break;
@@ -167,8 +167,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isend_reply(MPIR_Context_id_t context_i
                                                      MPI_Count count,
                                                      MPI_Datatype datatype, MPIR_Request * sreq)
 {
-	fprintf(stdout, "thread %ld, MPIDI_NM_am_isend_reply\n", pthread_self());
-    MPIR_Comm *comm = MPIDIG_context_id_to_comm(context_id);
+	MPIR_Comm *comm = MPIDIG_context_id_to_comm(context_id);
     int vni_src = comm->seq % MPIDI_CH4_MAX_VCIS;
     int vni_dst = comm->seq % MPIDI_CH4_MAX_VCIS;
     int mpi_errno = MPI_SUCCESS;

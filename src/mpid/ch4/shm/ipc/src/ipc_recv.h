@@ -125,7 +125,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_mpi_irecv(void *buf, MPI_Aint count, MPI_
         /* No matching request found, post the receive request  */
         MPIR_Request *rreq = NULL;
 
-        rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RECV, 2, root_comm->seq);
+        rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RECV, 2, vni);
         MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
 
         MPIR_Datatype_add_ref_if_not_builtin(datatype);

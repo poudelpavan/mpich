@@ -72,14 +72,14 @@ int MPIDIG_destroy_comm(MPIR_Comm * comm)
     // MPID_THREAD_CS_ENTER(VCI, MPIDIU_THREAD_MPIDIG_GLOBAL_MUTEX);
     MPIR_Assert(MPIDI_global.comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type] != NULL);
 
-    if (MPIDI_global.comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type]) {
-        MPIR_Assert(MPIDIG_COMM
-                    (MPIDI_global.comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type],
-                     posted_list) == NULL);
-        MPIR_Assert(MPIDIG_COMM
-                    (MPIDI_global.comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type],
-                     unexp_list) == NULL);
-    }
+    // if (MPIDI_global.comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type]) {
+    //     MPIR_Assert(MPIDIG_COMM
+    //                 (MPIDI_global.comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type],
+    //                  posted_list) == NULL);
+    //     MPIR_Assert(MPIDIG_COMM
+    //                 (MPIDI_global.comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type],
+    //                  unexp_list) == NULL);
+    // }
     MPIDI_global.comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type] = NULL;
     // MPID_THREAD_CS_EXIT(VCI, MPIDIU_THREAD_MPIDIG_GLOBAL_MUTEX);
 
