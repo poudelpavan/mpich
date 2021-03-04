@@ -74,6 +74,7 @@ MPL_STATIC_INLINE_PREFIX uint16_t MPIDI_OFI_am_fetch_incr_send_seqno(MPIR_Comm *
 MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_am_clear_request(MPIR_Request * sreq)
 {
     MPIDI_OFI_am_request_header_t *req_hdr;
+    int vci = MPIDI_Request_get_vci(sreq);
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_AM_CLEAR_REQUEST);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_AM_CLEAR_REQUEST);
 
@@ -82,7 +83,7 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_am_clear_request(MPIR_Request * sreq)
     if (!req_hdr)
         goto fn_exit;
 
-    MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.am_hdr_buf_pool, req_hdr);
+    MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.am_list[vci].am_hdr_buf_pool, req_hdr);
     MPIDI_OFI_AMREQUEST(sreq, req_hdr) = NULL;
 
   fn_exit:
@@ -94,6 +95,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_init_request(const void *am_hdr,
                                                        size_t am_hdr_sz, MPIR_Request * sreq)
 {
     int mpi_errno = MPI_SUCCESS;
+    int vci = MPIDI_Request_get_vci(sreq);
     MPIDI_OFI_am_request_header_t *req_hdr;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_AM_INIT_REQUEST);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_AM_INIT_REQUEST);
@@ -101,7 +103,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_init_request(const void *am_hdr,
     MPIR_Assert(am_hdr_sz < (1ULL << MPIDI_OFI_AM_HDR_SZ_BITS));
 
     if (MPIDI_OFI_AMREQUEST(sreq, req_hdr) == NULL) {
-        MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.am_hdr_buf_pool, (void **) &req_hdr);
+        MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.am_list[vci].am_hdr_buf_pool, (void **) &req_hdr);
         MPIR_Assert(req_hdr);
         MPIDI_OFI_AMREQUEST(sreq, req_hdr) = req_hdr;
 
@@ -624,14 +626,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_pipeline(int rank, MPIR_Comm 
         MPIR_ERR_CHECK(mpi_errno);
         send_size = packed_size;
 
-        MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.am_hdr_buf_pool, (void **) &send_req);
+        MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.am_list[vni_src].am_hdr_buf_pool, (void **) &send_req);
         MPIR_Assert(send_req);
         send_req->sreq = sreq;
         send_req->pack_buffer = send_buf;
     } else {
         MPIDI_Datatype_check_lb(datatype, dt_true_lb);
         send_buf = (char *) buf + dt_true_lb + (issue_deferred ? offset : 0);
-        MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.am_hdr_buf_pool, (void **) &send_req);
+        MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.am_list[vni_src].am_hdr_buf_pool, (void **) &send_req);
         MPIR_Assert(send_req);
         send_req->sreq = sreq;
         send_req->pack_buffer = NULL;

@@ -617,7 +617,7 @@ int init_am(int vni){
                                                   MPIDI_OFI_AM_HDR_POOL_NUM_CELLS_PER_CHUNK,
                                                   MPIDI_OFI_AM_HDR_POOL_MAX_NUM_CELLS,
                                                   host_alloc, host_free,
-                                                  &MPIDI_OFI_global.am_hdr_buf_pool);
+                                                  &MPIDI_OFI_global.am_list[vni].am_hdr_buf_pool);
         MPIR_ERR_CHECK(mpi_errno);
 
         MPIDI_OFI_global.cq_buffered_dynamic_head = MPIDI_OFI_global.cq_buffered_dynamic_tail =
@@ -800,7 +800,7 @@ int MPIDI_OFI_mpi_init_hook(int rank, int size, int appnum, int *tag_bits, MPIR_
 int MPIDI_OFI_mpi_finalize_hook(void)
 {
     int mpi_errno = MPI_SUCCESS;
-    int i = 0;
+    int i = 0, j = 0;
     int barrier[2] = { 0 };
     MPIR_Errflag_t errflag = MPIR_ERR_NONE;
 
@@ -859,11 +859,10 @@ int MPIDI_OFI_mpi_finalize_hook(void)
             }
             MPIDIU_map_destroy(MPIDI_OFI_global.am_list[i].am_send_seq_tracker);
             MPIDIU_map_destroy(MPIDI_OFI_global.am_list[i].am_recv_seq_tracker);
-            for (i = 0; i < MPIDI_OFI_NUM_AM_BUFFERS; i++)
-                MPL_gpu_free_host(MPIDI_OFI_global.am_list[i].am_bufs[i]);
+            for (j = 0; j < MPIDI_OFI_NUM_AM_BUFFERS; j++)
+                MPL_gpu_free_host(MPIDI_OFI_global.am_list[i].am_bufs[j]);
+            MPIDU_genq_private_pool_destroy_unsafe(MPIDI_OFI_global.am_list[i].am_hdr_buf_pool);
         } 
-
-        MPIDU_genq_private_pool_destroy_unsafe(MPIDI_OFI_global.am_hdr_buf_pool);
 
         MPIR_Assert(MPIDI_OFI_global.cq_buffered_static_head ==
                     MPIDI_OFI_global.cq_buffered_static_tail);

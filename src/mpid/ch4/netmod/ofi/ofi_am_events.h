@@ -164,6 +164,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_rdma_read(void *dst,
                                                     MPIR_Context_id_t context_id,
                                                     int src_rank, MPIR_Request * rreq)
 {
+    int vni_src = 0, vni_dst = 0;
     int mpi_errno = MPI_SUCCESS;
     size_t done = 0, curr_len, rem = 0;
     MPIDI_OFI_am_request_t *am_req;
@@ -172,21 +173,19 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_rdma_read(void *dst,
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_DO_RDMA_READ);
 
     rem = data_sz;
-    int vni_src = 0, vni_dst = 0;
 
     while (done != data_sz) {
         curr_len = MPL_MIN(rem, MPIDI_OFI_global.max_msg_size);
-
-        MPIR_Assert(sizeof(MPIDI_OFI_am_request_t) <= MPIDI_OFI_AM_HDR_POOL_CELL_SIZE);
-        MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.am_hdr_buf_pool, (void **) &am_req);
-        MPIR_Assert(am_req);
-
-        am_req->req_hdr = MPIDI_OFI_AMREQUEST(rreq, req_hdr);
-        am_req->event_id = MPIDI_OFI_EVENT_AM_READ;
         comm = MPIDIG_context_id_to_comm(context_id);
         vni_src = comm->seq % MPIDI_CH4_MAX_VCIS;
         vni_dst = comm->seq % MPIDI_CH4_MAX_VCIS;
         MPIR_Assert(comm);
+        MPIR_Assert(sizeof(MPIDI_OFI_am_request_t) <= MPIDI_OFI_AM_HDR_POOL_CELL_SIZE);
+        MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.am_list[vni_src].am_hdr_buf_pool, (void **) &am_req);
+        MPIR_Assert(am_req);
+
+        am_req->req_hdr = MPIDI_OFI_AMREQUEST(rreq, req_hdr);
+        am_req->event_id = MPIDI_OFI_EVENT_AM_READ;
         MPIDI_OFI_cntr_incr();
 
         struct iovec iov = {
