@@ -137,11 +137,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_do_irecv(void *buf, MPI_Aint count, MPI_Data
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_DO_IRECV);
 
     root_comm = MPIDIG_context_id_to_comm(context_id);
-    fprintf(stdout,"thread %ld, irecv, root_comm = %x, seq no = %d, context_id = %d, context_offset = %d, vci = %d, checked unexp_list = %p\n", pthread_self(),root_comm->handle, root_comm->seq, context_id,context_offset, vni_dst, MPIDI_global.unexp_lst[vni_dst]);
-    unexp_req = MPIDIG_dequeue_unexp(rank, tag, context_id, &MPIDI_global.unexp_lst[vni_dst]);
+    fprintf(stdout,"thread %ld, irecv, root_comm = %x, seq no = %d, context_id = %d, context_offset = %d, vci = %d, checked unexp_list = %p\n", pthread_self(),root_comm->handle, root_comm->seq, context_id,context_offset, vni_dst, MPIDI_global.queue[vni_dst].unexp_lst);
+    unexp_req = MPIDIG_dequeue_unexp(rank, tag, context_id, &(MPIDI_global.queue[vni_dst].unexp_lst));
 
     if (unexp_req) {
-        fprintf(stdout,"thread %ld, unexp_req, context_id = %d\n", pthread_self(),context_id);
+        fprintf(stdout,"thread %ld, unexp_req, context_id = %d, unexp_list = %p\n", pthread_self(),context_id, MPIDI_global.queue[vni_dst].unexp_lst);
         MPIR_Comm_release(root_comm);   /* -1 for removing from unexp_list */
         if (MPIDIG_REQUEST(unexp_req, req->status) & MPIDIG_REQ_BUSY) {
             MPIDIG_REQUEST(unexp_req, req->status) |= MPIDIG_REQ_MATCHED;
@@ -255,7 +255,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_do_irecv(void *buf, MPI_Aint count, MPI_Data
         /* Increment refcnt for comm before posting rreq to posted_list,
          * to make sure comm is alive while holding an entry in the posted_list */
         MPIR_Comm_add_ref(root_comm);
-        MPIDIG_enqueue_posted(rreq, &MPIDI_global.posted_lst[vni_dst]);  
+        MPIDIG_enqueue_posted(rreq, &(MPIDI_global.queue[vni_dst].posted_lst));  
         /* MPIDI_CS_EXIT(); */
     } else {
         MPIDIG_REQUEST(unexp_req, req->rreq.match_req) = rreq;
@@ -380,7 +380,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_cancel_recv(MPIR_Request * rreq)
         /* MPIDI_CS_ENTER(); */
         found =
             MPIDIG_delete_posted(&MPIDIG_REQUEST(rreq, req->rreq),
-                                 &MPIDI_global.posted_lst[vci]);
+                                 &(MPIDI_global.queue[vci].posted_lst));
         /* MPIDI_CS_EXIT(); */
 
         if (found) {

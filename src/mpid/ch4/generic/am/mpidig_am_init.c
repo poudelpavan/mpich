@@ -133,8 +133,10 @@ int MPIDIG_am_init(void)
 
     for(i = 0; i < MPIDI_CH4_MAX_VCIS; i++)
     {
-        MPIDI_global.posted_lst[i] = NULL;
-        MPIDI_global.unexp_lst[i] = NULL;
+        // MPIDI_global.posted_lst[i] = NULL;
+        // MPIDI_global.unexp_lst[i] = NULL;
+        MPIDI_global.queue[i].posted_lst = NULL;
+        MPIDI_global.queue[i].unexp_lst = NULL;
     }
     MPIDI_global.cmpl_list = NULL;
     MPL_atomic_store_uint64(&MPIDI_global.exp_seq_no, 0);

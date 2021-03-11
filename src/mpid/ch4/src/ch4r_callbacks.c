@@ -313,17 +313,18 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
     if(!root_comm){
         fprintf(stdout, "thread %ld, root_comm = NULL, context_id (hdr->context_id) = %d, vci = %d\n",pthread_self(), hdr->context_id, vci);
         rreq = MPIDIG_dequeue_posted(hdr->src_rank, hdr->tag, hdr->context_id,
-                                         is_local, &MPIDI_global.posted_lst[vci]);
+                                         is_local, &(MPIDI_global.queue[vci].posted_lst));
     }
     //fprintf(stdout, "thread %ld, Before vci = root_comm->seq % MPIDI_CH4_MAX_VCIS;, root_comm = %x, seq = %d\n", pthread_self(), root_comm->handle);
     //vci = root_comm->seq % MPIDI_CH4_MAX_VCIS;
     if (root_comm) {
       root_comm_retry:
-        fprintf(stdout,"thread %ld, MPIDIG_send_target_msg_cb, root_comm = %x, context id = %d, vci = %d, checked posted_list = %p\n",pthread_self(),root_comm->handle, root_comm->context_id, vci, MPIDI_global.posted_lst[vci]);
+        fprintf(stdout,"thread %ld, MPIDIG_send_target_msg_cb, root_comm=%x, context id=%d, vci=%d, posted_list=%p\n",pthread_self(),root_comm->handle, root_comm->context_id, vci, MPIDI_global.queue[vci].posted_lst);
         /* MPIDI_CS_ENTER(); */
         while (TRUE) {
             rreq = MPIDIG_dequeue_posted(hdr->src_rank, hdr->tag, hdr->context_id,
-                                         is_local, &MPIDI_global.posted_lst[vci]);
+                                         is_local, &(MPIDI_global.queue[vci].posted_lst));
+			fprintf(stdout, "thread %ld, dequeue_posted\n", pthread_self());
 #ifndef MPIDI_CH4_DIRECT_NETMOD
             if (rreq) {
                 int is_cancelled;
@@ -342,7 +343,7 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
     }
 
     if (rreq == NULL) {
-        fprintf(stdout,"thread %ld, rreq = NULL, enqueue_unexp, vci = %d\n",pthread_self(), vci);
+        fprintf(stdout,"thread %ld, rreq = NULL, enqueue_unexp, vci = %d, hdr->context = %d\n",pthread_self(), vci, hdr->context_id);
         rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RECV, 2, vci);
         MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
         /* for unexpected message, always recv as MPI_BYTE into unexpected buffer. They will be
@@ -389,9 +390,11 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
         // MPID_THREAD_CS_ENTER(VCI, MPIDIU_THREAD_MPIDIG_GLOBAL_MUTEX);
         if (root_comm) {
             MPIR_Comm_add_ref(root_comm);
-            MPIDIG_enqueue_unexp(rreq, &MPIDI_global.unexp_lst[vci]);                
+            MPIDIG_enqueue_unexp(rreq, &(MPIDI_global.queue[vci].unexp_lst));
+            fprintf(stdout,"thread %ld, rreq = NULL, root_comm, enqueue_unexp, vci=%d, hdr->context=%d, unexp_list=%p\n",pthread_self(), vci, hdr->context_id,MPIDI_global.queue[vci].unexp_lst);               
         } else {
-            MPIDIG_enqueue_unexp(rreq, &MPIDI_global.unexp_lst[vci]);
+            MPIDIG_enqueue_unexp(rreq, &(MPIDI_global.queue[vci].unexp_lst));
+            fprintf(stdout,"thread %ld, rreq = NULL, !root_comm, enqueue_unexp, vci=%d, hdr->context=%d, unexp_list=%p\n",pthread_self(), vci, hdr->context_id,MPIDI_global.queue[vci].unexp_lst); 
             MPIR_Comm *root_comm_again;
             /* This branch means that last time we checked, there was no communicator
              * associated with the arriving message.
@@ -432,9 +435,10 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
                         (MPL_DBG_FDEST, "posted req %p handle=0x%x", rreq, rreq->handle));
 
         /* rreq != NULL <=> root_comm != NULL */
-        MPIR_Assert(root_comm);
+        //MPIR_Assert(root_comm);
         /* Decrement the refcnt when popping a request out from posted_list */
-        MPIR_Comm_release(root_comm);
+        if(root_comm)
+            MPIR_Comm_release(root_comm);
         MPIDIG_REQUEST(rreq, rank) = hdr->src_rank;
         MPIDIG_REQUEST(rreq, tag) = hdr->tag;
         MPIDIG_REQUEST(rreq, context_id) = hdr->context_id;
