@@ -145,20 +145,23 @@ int MPIDIG_am_init(void)
     MPL_atomic_store_int(&MPIDIG_global.rma_am_flag, 0);
     MPIR_cc_set(&MPIDIG_global.rma_am_poll_cntr, 0);
 
-    mpi_errno =
+    for(i = 0; i < MPIDI_CH4_MAX_VCIS; i++){
+        mpi_errno =
         MPIDU_genq_private_pool_create_unsafe(MPIDIU_REQUEST_POOL_CELL_SIZE,
                                               MPIDIU_REQUEST_POOL_NUM_CELLS_PER_CHUNK,
                                               MPIDIU_REQUEST_POOL_MAX_NUM_CELLS, host_alloc,
                                               host_free, &MPIDI_global.queue[i].request_pool);
-    MPIR_ERR_CHECK(mpi_errno);
-    /* The cell size need to match the send side (ofi short msg size) */
-    mpi_errno = MPIDU_genq_private_pool_create_unsafe(MPIR_CVAR_CH4_AM_PACK_BUFFER_SIZE,
+        MPIR_ERR_CHECK(mpi_errno);
+        /* The cell size need to match the send side (ofi short msg size) */
+        mpi_errno = MPIDU_genq_private_pool_create_unsafe(MPIR_CVAR_CH4_AM_PACK_BUFFER_SIZE,
                                                       MPIR_CVAR_CH4_NUM_AM_PACK_BUFFERS_PER_CHUNK,
                                                       INT_MAX,
                                                       host_alloc_buffer_registered,
                                                       host_free_buffer_registered,
                                                       &MPIDI_global.queue[i].unexp_pack_buf_pool);
-    MPIR_ERR_CHECK(mpi_errno);
+
+        MPIR_ERR_CHECK(mpi_errno);
+    }
 
     MPIR_Assert(MPIDIG_HANDLER_STATIC_MAX <= MPIDI_AM_HANDLERS_MAX);
 
