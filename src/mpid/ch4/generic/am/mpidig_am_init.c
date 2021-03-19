@@ -150,7 +150,7 @@ int MPIDIG_am_init(void)
         MPIDU_genq_private_pool_create_unsafe(MPIDIU_REQUEST_POOL_CELL_SIZE,
                                               MPIDIU_REQUEST_POOL_NUM_CELLS_PER_CHUNK,
                                               MPIDIU_REQUEST_POOL_MAX_NUM_CELLS, host_alloc,
-                                              host_free, &MPIDI_global.queue[i].request_pool);
+                                              host_free, &MPIDI_global.queue[i].buffer_pool);
         MPIR_ERR_CHECK(mpi_errno);
         /* The cell size need to match the send side (ofi short msg size) */
         mpi_errno = MPIDU_genq_private_pool_create_unsafe(MPIR_CVAR_CH4_AM_PACK_BUFFER_SIZE,
@@ -231,7 +231,7 @@ void MPIDIG_am_finalize(void)
 
     MPIDIU_map_destroy(MPIDI_global.win_map);
     for(i = 0; i < MPIDI_CH4_MAX_VCIS; i++){
-        MPIDU_genq_private_pool_destroy_unsafe(MPIDI_global.queue[i].request_pool);
+        MPIDU_genq_private_pool_destroy_unsafe(MPIDI_global.queue[i].buffer_pool);
         MPIDU_genq_private_pool_destroy_unsafe(MPIDI_global.queue[i].unexp_pack_buf_pool);
     }
     MPL_free(MPIDI_global.comm_req_lists);
