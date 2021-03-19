@@ -537,7 +537,7 @@ static int am_isend_event(struct fi_cq_tagged_entry *wc, MPIR_Request * sreq)
         mpi_errno = MPIDIG_global.origin_cbs[msg_hdr->handler_id] (sreq);
         MPIR_ERR_CHECK(mpi_errno);
     }
-
+    fprintf(stdout, "%ld, exit am_isend_event\n", pthread_self());
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_AM_ISEND_EVENT);
     return mpi_errno;
@@ -591,6 +591,7 @@ static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int
 
     void *orig_buf = wc->buf;   /* needed in case we will copy the header for alignment fix */
     am_hdr = (MPIDI_OFI_am_header_t *) wc->buf;
+    fprintf(stdout, "%ld, am_recv_event, fi_cq_tagged_entry (wc->buf)=%p, am_hdr->context=%d\n", pthread_self(), orig_buf, ((MPIDIG_hdr_t *) am_hdr)->context_id);
 
 #if NEEDS_STRICT_ALIGNMENT
     /* FI_MULTI_RECV may pack the message at lesser alignment, copy the header
@@ -871,9 +872,12 @@ int MPIDI_OFI_handle_cq_entries(struct fi_cq_tagged_entry *wc, ssize_t num, int 
     MPIR_Request *req;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_HANDLE_CQ_ENTRIES);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_HANDLE_CQ_ENTRIES);
+    // if(num == 2)
+    //     fprintf(stdout, "%ld, num = 2 \n", pthread_self());
 
     for (i = 0; i < num; i++) {
         req = MPIDI_OFI_context_to_request(wc[i].op_context);
+        //fprintf(stdout, "%ld, MPIDI_OFI_handle_cq_entries, vci=%d, i=%d, req-kind=%d\n", pthread_self(), vni, i, req->kind);
         mpi_errno = MPIDI_OFI_dispatch_function(&wc[i], req, vni);
         MPIR_ERR_CHECK(mpi_errno);
     }
@@ -892,27 +896,31 @@ int MPIDI_OFI_handle_cq_error(int vni_idx, ssize_t ret)
     MPIR_Request *req;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_HANDLE_CQ_ERROR);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_HANDLE_CQ_ERROR);
-
+    fprintf(stdout, "%ld, MPIDI_OFI_handle_cq_error, vni=%d, ret=%ld\n", pthread_self(), vni_idx, ret);
     switch (ret) {
         case -FI_EAVAIL:
+            fprintf(stdout, "%ld, fi_cq_readerr, vni=%d, ret=%ld\n", pthread_self(), vni_idx, ret);
             fi_cq_readerr(MPIDI_OFI_global.ctx[vni_idx].cq, &e, 0);
-
+			fprintf(stdout, "%ld, exit fi_cq_readerr, errorcode=%d\n", pthread_self(), e.err);
             switch (e.err) {
                 case FI_ETRUNC:
                     req = MPIDI_OFI_context_to_request(e.op_context);
 
                     switch (req->kind) {
                         case MPIR_REQUEST_KIND__SEND:
+                            fprintf(stdout, "%ld, MPIR_REQUEST_KIND__SEND error\n", pthread_self());
                             mpi_errno = MPIDI_OFI_dispatch_function(NULL, req, vni_idx);
                             break;
 
                         case MPIR_REQUEST_KIND__RECV:
+                            fprintf(stdout, "%ld, MPIR_REQUEST_KIND__RECV error\n", pthread_self());
                             mpi_errno =
                                 MPIDI_OFI_dispatch_function((struct fi_cq_tagged_entry *) &e, req, vni_idx);
                             req->status.MPI_ERROR = MPI_ERR_TRUNCATE;
                             break;
 
                         default:
+                            fprintf(stdout, "%ld, other error\n", pthread_self());
                             MPIR_ERR_SETFATALANDJUMP4(mpi_errno, MPI_ERR_OTHER, "**ofid_poll",
                                                       "**ofid_poll %s %d %s %s", __SHORT_FILE__,
                                                       __LINE__, __func__, fi_strerror(e.err));
@@ -921,12 +929,14 @@ int MPIDI_OFI_handle_cq_error(int vni_idx, ssize_t ret)
                     break;
 
                 case FI_ECANCELED:
+                    fprintf(stdout, "%ld, FI_ECANCELED error\n", pthread_self());
                     req = MPIDI_OFI_context_to_request(e.op_context);
                     MPIR_Datatype_release_if_not_builtin(MPIDI_OFI_REQUEST(req, datatype));
                     MPIR_STATUS_SET_CANCEL_BIT(req->status, TRUE);
                     break;
 
                 case FI_ENOMSG:
+                    fprintf(stdout, "%ld, FI_ENOMSG error\n", pthread_self());
                     req = MPIDI_OFI_context_to_request(e.op_context);
                     peek_empty_event(NULL, req);
                     break;
@@ -941,6 +951,7 @@ int MPIDI_OFI_handle_cq_error(int vni_idx, ssize_t ret)
             break;
 
         default:
+            fprintf(stdout, "%ld, other error, vni=%d, ret=%ld\n", pthread_self(), vni_idx, ret);
             MPIR_ERR_SETFATALANDJUMP4(mpi_errno, MPI_ERR_OTHER, "**ofid_poll",
                                       "**ofid_poll %s %d %s %s", __SHORT_FILE__, __LINE__,
                                       __func__, fi_strerror(errno));

@@ -8,6 +8,7 @@
 
 #include "ch4_impl.h"
 #include "mpidu_genq.h"
+#include "ch4_vci.h"
 
 MPL_STATIC_INLINE_PREFIX int MPID_Request_is_anysource(MPIR_Request * req)
 {
@@ -75,13 +76,14 @@ MPL_STATIC_INLINE_PREFIX void MPID_Request_set_completed(MPIR_Request * req)
 */
 MPL_STATIC_INLINE_PREFIX int MPID_Request_complete(MPIR_Request * req)
 {
-    int incomplete, notify_counter;
+    int incomplete, notify_counter, vci;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_REQUEST_COMPLETE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_REQUEST_COMPLETE);
 
     MPIR_cc_decr(req->cc_ptr, &incomplete);
-
+    fprintf(stdout, "%ld, MPID_Request_complete, MPIDI_Request_get_vci\n", pthread_self());
+    vci = MPIDI_Request_get_vci(req);
     /* if we hit a zero completion count, free up AM-related
      * objects */
     if (!incomplete) {
@@ -90,7 +92,7 @@ MPL_STATIC_INLINE_PREFIX int MPID_Request_complete(MPIR_Request * req)
             MPIR_cc_decr(req->completion_notification, &notify_counter);
 
         if (MPIDIG_REQUEST(req, req)) {
-            MPIDU_genq_private_pool_free_cell(MPIDI_global.request_pool, MPIDIG_REQUEST(req, req));
+            MPIDU_genq_private_pool_free_cell(MPIDI_global.queue[vci].request_pool, MPIDIG_REQUEST(req, req));
             MPIDIG_REQUEST(req, req) = NULL;
             MPIDI_NM_am_request_finalize(req);
 #ifndef MPIDI_CH4_DIRECT_NETMOD

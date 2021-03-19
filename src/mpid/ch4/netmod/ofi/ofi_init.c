@@ -815,7 +815,7 @@ int MPIDI_OFI_mpi_finalize_hook(void)
     /* NOTE: am currently only use vni 0. Need update once that changes */
     for(i = 0; i < MPIDI_CH4_MAX_VCIS; i++){
         while (MPL_atomic_load_int(&MPIDI_OFI_global.am_list[i].am_inflight_rma_send_mrs) > 0)
-            MPIDI_OFI_PROGRESS(0);
+            MPIDI_OFI_PROGRESS(i);
     }    
 
     /* Destroy RMA key allocator */
@@ -831,7 +831,7 @@ int MPIDI_OFI_mpi_finalize_hook(void)
     /* NOTE: am currently only use vni 0. Need update once that changes */
     for(i = 0; i < MPIDI_CH4_MAX_VCIS; i++){
         while (MPL_atomic_load_int(&MPIDI_OFI_global.am_list[i].am_inflight_inject_emus) > 0)
-            MPIDI_OFI_PROGRESS(0);
+            MPIDI_OFI_PROGRESS(i);
         MPIR_Assert(MPL_atomic_load_int(&MPIDI_OFI_global.am_list[i].am_inflight_inject_emus) == 0);
     }    
 

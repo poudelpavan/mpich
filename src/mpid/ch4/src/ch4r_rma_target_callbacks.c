@@ -1297,7 +1297,7 @@ int MPIDIG_win_ctrl_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_
 int MPIDIG_put_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint in_data_sz,
                              int is_local, int is_async, MPIR_Request ** req)
 {
-    int mpi_errno = MPI_SUCCESS;
+    int mpi_errno = MPI_SUCCESS, vci = 0;
     MPIR_Request *rreq = NULL;
     uintptr_t base;             /* Base address of the window */
     size_t offset;
@@ -1310,8 +1310,10 @@ int MPIDIG_put_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_PUT_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_PUT_TARGET_MSG_CB);
     MPIR_T_PVAR_TIMER_START(RMA, rma_targetcb_put);
+    vci = root_comm->seq % MPIDI_CH4_MAX_VCIS;
+    fprintf(stdout, "%ld, MPIDIG_put_target_msg_cb, vci=%d\n", pthread_self(), vci);
 
-    rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RMA, 1, root_comm->seq);
+    rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RMA, 1, vci);
     MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
 
     MPIDIG_REQUEST(rreq, req->preq.preq_ptr) = msg_hdr->preq_ptr;
@@ -1375,7 +1377,7 @@ int MPIDIG_put_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint 
 int MPIDIG_put_dt_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint in_data_sz,
                                 int is_local, int is_async, MPIR_Request ** req)
 {
-    int mpi_errno = MPI_SUCCESS;
+    int mpi_errno = MPI_SUCCESS, vci = 0;
     MPIR_Request *rreq = NULL;
     uintptr_t base;
     size_t offset;
@@ -1388,8 +1390,10 @@ int MPIDIG_put_dt_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Ai
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_PUT_DT_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_PUT_DT_TARGET_MSG_CB);
     MPIR_T_PVAR_TIMER_START(RMA, rma_targetcb_put_dt);
+    vci = root_comm->seq % MPIDI_CH4_MAX_VCIS;
+    fprintf(stdout, "%ld, MPIDIG_put_dt_target_msg_cb, vci=%d\n", pthread_self(), vci);
 
-    rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RMA, 1, root_comm->seq);
+    rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RMA, 1, vci);
     MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
 
     MPIDIG_REQUEST(rreq, req->preq.preq_ptr) = msg_hdr->preq_ptr;
@@ -1435,7 +1439,7 @@ int MPIDIG_put_dt_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Ai
 int MPIDIG_put_dt_ack_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint in_data_sz,
                                     int is_local, int is_async, MPIR_Request ** req)
 {
-    int mpi_errno = MPI_SUCCESS;
+    int mpi_errno = MPI_SUCCESS, vci = 0;
     MPIR_Request *rreq, *origin_req;
     MPIDIG_put_dt_ack_msg_t *msg_hdr = (MPIDIG_put_dt_ack_msg_t *) am_hdr;
     MPIDIG_put_dat_msg_t dat_msg;
@@ -1447,8 +1451,10 @@ int MPIDIG_put_dt_ack_target_msg_cb(int handler_id, void *am_hdr, void *data, MP
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_PUT_DT_ACK_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_PUT_DT_ACK_TARGET_MSG_CB);
     MPIR_T_PVAR_TIMER_START(RMA, rma_targetcb_put_dt_ack);
+    vci = root_comm->seq % MPIDI_CH4_MAX_VCIS;
+    fprintf(stdout, "%ld, MPIDIG_put_dt_ack_target_msg_cb, vci=%d\n", pthread_self(), vci);
 
-    rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RMA, 1, root_comm->seq);
+    rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RMA, 1, vci);
     MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
 
     origin_req = (MPIR_Request *) msg_hdr->origin_preq_ptr;
@@ -1494,7 +1500,7 @@ int MPIDIG_put_dt_ack_target_msg_cb(int handler_id, void *am_hdr, void *data, MP
 int MPIDIG_acc_dt_ack_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint in_data_sz,
                                     int is_local, int is_async, MPIR_Request ** req)
 {
-    int mpi_errno = MPI_SUCCESS;
+    int mpi_errno = MPI_SUCCESS, vci = 0;
     MPIR_Request *rreq, *origin_req;
     MPIDIG_acc_dt_ack_msg_t *msg_hdr = (MPIDIG_acc_dt_ack_msg_t *) am_hdr;
     MPIDIG_acc_dat_msg_t dat_msg;
@@ -1506,8 +1512,10 @@ int MPIDIG_acc_dt_ack_target_msg_cb(int handler_id, void *am_hdr, void *data, MP
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_ACC_DT_ACK_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_ACC_DT_ACK_TARGET_MSG_CB);
     MPIR_T_PVAR_TIMER_START(RMA, rma_targetcb_acc_dt_ack);
+    vci = root_comm->seq % MPIDI_CH4_MAX_VCIS;
+    fprintf(stdout, "%ld, MPIDIG_acc_dt_ack_target_msg_cb, vci=%d\n", pthread_self(), vci);
 
-    rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RMA, 1, root_comm->seq);
+    rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RMA, 1, vci);
     MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
 
     origin_req = (MPIR_Request *) msg_hdr->origin_preq_ptr;
@@ -1556,7 +1564,7 @@ int MPIDIG_get_acc_dt_ack_target_msg_cb(int handler_id, void *am_hdr, void *data
                                         MPI_Aint in_data_sz, int is_local, int is_async,
                                         MPIR_Request ** req)
 {
-    int mpi_errno = MPI_SUCCESS;
+    int mpi_errno = MPI_SUCCESS, vci = 0;
     MPIR_Request *rreq, *origin_req;
     MPIDIG_get_acc_dt_ack_msg_t *msg_hdr = (MPIDIG_get_acc_dt_ack_msg_t *) am_hdr;
     MPIDIG_get_acc_dat_msg_t dat_msg;
@@ -1568,8 +1576,10 @@ int MPIDIG_get_acc_dt_ack_target_msg_cb(int handler_id, void *am_hdr, void *data
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_GET_ACC_DT_ACK_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_GET_ACC_DT_ACK_TARGET_MSG_CB);
     MPIR_T_PVAR_TIMER_START(RMA, rma_targetcb_get_acc_dt_ack);
+    vci = root_comm->seq % MPIDI_CH4_MAX_VCIS;
+    fprintf(stdout, "%ld, MPIDIG_get_acc_dt_ack_target_msg_cb, vci=%d\n", pthread_self(), vci);
 
-    rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RMA, 1, root_comm->seq);
+    rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RMA, 1, vci);
     MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
 
     origin_req = (MPIR_Request *) msg_hdr->origin_preq_ptr;
@@ -1722,7 +1732,7 @@ int MPIDIG_get_acc_data_target_msg_cb(int handler_id, void *am_hdr, void *data, 
 int MPIDIG_cswap_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint in_data_sz,
                                int is_local, int is_async, MPIR_Request ** req)
 {
-    int mpi_errno = MPI_SUCCESS;
+    int mpi_errno = MPI_SUCCESS, vci = 0;
     MPIR_Request *rreq = NULL;
     MPI_Aint data_sz;
     MPIR_Win *win;
@@ -1737,8 +1747,10 @@ int MPIDIG_cswap_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Ain
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_CSWAP_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_CSWAP_TARGET_MSG_CB);
     MPIR_T_PVAR_TIMER_START(RMA, rma_targetcb_cas);
+    vci = root_comm->seq % MPIDI_CH4_MAX_VCIS;
+    fprintf(stdout, "%ld, MPIDIG_cswap_target_msg_cb, vci=%d\n", pthread_self(), vci);
 
-    rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RMA, 1, root_comm->seq);
+    rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RMA, 1, vci);
     MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
 
     MPIDIG_REQUEST(rreq, req->target_cmpl_cb) = cswap_target_cmpl_cb;
@@ -1788,7 +1800,7 @@ int MPIDIG_cswap_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Ain
 int MPIDIG_acc_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint in_data_sz,
                              int is_local, int is_async, MPIR_Request ** req)
 {
-    int mpi_errno = MPI_SUCCESS;
+    int mpi_errno = MPI_SUCCESS, vci = 0;
     MPIR_Request *rreq = NULL;
     MPI_Aint origin_data_sz;
     void *p_data = NULL;
@@ -1801,8 +1813,10 @@ int MPIDIG_acc_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_ACC_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_ACC_TARGET_MSG_CB);
     MPIR_T_PVAR_TIMER_START(RMA, rma_targetcb_acc);
+    vci = root_comm->seq % MPIDI_CH4_MAX_VCIS;
+    fprintf(stdout, "%ld, MPIDIG_acc_target_msg_cb, vci=%d\n", pthread_self(), vci);
 
-    rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RMA, 1, root_comm->seq);
+    rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RMA, 1, vci);
     MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
 
     MPIDI_Datatype_check_size(msg_hdr->origin_datatype, msg_hdr->origin_count, origin_data_sz);
@@ -1901,7 +1915,7 @@ int MPIDIG_get_acc_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_A
 int MPIDIG_acc_dt_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint in_data_sz,
                                 int is_local, int is_async, MPIR_Request ** req)
 {
-    int mpi_errno = MPI_SUCCESS;
+    int mpi_errno = MPI_SUCCESS, vci = 0;
     MPIR_Request *rreq = NULL;
     MPIR_Win *win;
     uintptr_t base;
@@ -1914,8 +1928,10 @@ int MPIDIG_acc_dt_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Ai
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_ACC_DT_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_ACC_DT_TARGET_MSG_CB);
     MPIR_T_PVAR_TIMER_START(RMA, rma_targetcb_acc_dt);
+    vci = root_comm->seq % MPIDI_CH4_MAX_VCIS;
+    fprintf(stdout, "%ld, MPIDIG_acc_dt_target_msg_cb, vci=%d\n", pthread_self(), vci);
 
-    rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RMA, 1, root_comm->seq);
+    rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RMA, 1, vci);
     MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
 
     win = (MPIR_Win *) MPIDIU_map_lookup(MPIDI_global.win_map, msg_hdr->win_id);
@@ -1995,7 +2011,7 @@ int MPIDIG_get_acc_dt_target_msg_cb(int handler_id, void *am_hdr, void *data, MP
 int MPIDIG_get_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint in_data_sz,
                              int is_local, int is_async, MPIR_Request ** req)
 {
-    int mpi_errno = MPI_SUCCESS;
+    int mpi_errno = MPI_SUCCESS, vci = 0;
     MPIR_Request *rreq = NULL;
     MPIDIG_get_msg_t *msg_hdr = (MPIDIG_get_msg_t *) am_hdr;
     MPIR_Win *win;
@@ -2006,8 +2022,10 @@ int MPIDIG_get_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_GET_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_GET_TARGET_MSG_CB);
     MPIR_T_PVAR_TIMER_START(RMA, rma_targetcb_get);
+    vci = root_comm->seq % MPIDI_CH4_MAX_VCIS;
+    fprintf(stdout, "%ld, MPIDIG_get_target_msg_cb, vci=%d\n", pthread_self(), vci);
 
-    rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RMA, 1, root_comm->seq);
+    rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RMA, 1, vci);
     MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
 
     MPIDIG_REQUEST(rreq, req->target_cmpl_cb) = get_target_cmpl_cb;

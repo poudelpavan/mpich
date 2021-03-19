@@ -35,7 +35,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_isend_unsafe(const void *buf,
     if (mpi_errno == MPI_SUCCESS)
         MPIDI_REQUEST(*request, is_local) = r;
 #endif
-
+    //fprintf(stdout, "%ld, exit MPIDI_isend_unsafe, mpi_errno=%d\n", pthread_self(), mpi_errno);
     MPIR_ERR_CHECK(mpi_errno);
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_ISEND_UNSAFE);
@@ -129,11 +129,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_isend_safe(const void *buf,
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_ISEND_SAFE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_ISEND_SAFE);
+    int vni_src = comm->seq % MPIDI_CH4_MAX_VCIS;
+    int vni_dst = comm->seq % MPIDI_CH4_MAX_VCIS;
+    fprintf(stdout, "%ld, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
 
 #ifdef MPIDI_CH4_USE_WORK_QUEUES
-    MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(0).lock);
-    *(req) = MPIR_Request_create_from_pool(MPIR_REQUEST_KIND__SEND, 0);
-    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(0).lock);
+    MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vni_src).lock);
+    *(req) = MPIR_Request_create_from_pool(MPIR_REQUEST_KIND__SEND, vni_src);
+    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vni_src).lock);
     MPIR_ERR_CHKANDSTMT((*req) == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
     MPIR_Datatype_add_ref_if_not_builtin(datatype);
     MPIDI_workq_pt2pt_enqueue(ISEND, buf, NULL /*recv_buf */ , count, datatype,
@@ -144,7 +147,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_isend_safe(const void *buf,
     *(req) = NULL;
     mpi_errno = MPIDI_isend_unsafe(buf, count, datatype, rank, tag, comm, context_offset, av, req);
 #endif
-
+    fprintf(stdout, "%ld, exit MPIDI_isend_safe, mpi_errno=%d\n", pthread_self(), mpi_errno);
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_ISEND_SAFE);
     return mpi_errno;
@@ -166,11 +169,13 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_isend_coll_safe(const void *buf,
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_ISEND_COLL_SAFE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_ISEND_COLL_SAFE);
+    int vni_src = comm->seq % MPIDI_CH4_MAX_VCIS;
+    int vni_dst = comm->seq % MPIDI_CH4_MAX_VCIS;
 
 #ifdef MPIDI_CH4_USE_WORK_QUEUES
-    MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(0).lock);
-    *(req) = MPIR_Request_create_from_pool(MPIR_REQUEST_KIND__SEND, 0);
-    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(0).lock);
+    MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vni_src).lock);
+    *(req) = MPIR_Request_create_from_pool(MPIR_REQUEST_KIND__SEND, vni_src);
+    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vni_src).lock);
     MPIR_ERR_CHKANDSTMT((*req) == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
     MPIR_Datatype_add_ref_if_not_builtin(datatype);
     MPIDI_workq_csend_enqueue(ICSEND, buf, count, datatype, rank, tag, comm,
@@ -200,11 +205,13 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_issend_safe(const void *buf,
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_ISSEND_SAFE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_ISSEND_SAFE);
+    int vni_src = comm->seq % MPIDI_CH4_MAX_VCIS;
+    int vni_dst = comm->seq % MPIDI_CH4_MAX_VCIS;
 
 #ifdef MPIDI_CH4_USE_WORK_QUEUES
-    MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(0).lock);
-    *(req) = MPIR_Request_create_from_pool(MPIR_REQUEST_KIND__SEND, 0);
-    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(0).lock);
+    MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vni_src).lock);
+    *(req) = MPIR_Request_create_from_pool(MPIR_REQUEST_KIND__SEND, vni_src);
+    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vni_src).lock);
     MPIR_ERR_CHKANDSTMT((*req) == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
     MPIR_Datatype_add_ref_if_not_builtin(datatype);
     MPIDI_workq_pt2pt_enqueue(SSEND, buf, NULL /*recv_buf */ , count, datatype,
@@ -236,7 +243,7 @@ MPL_STATIC_INLINE_PREFIX int MPID_Isend(const void *buf,
     MPIDI_av_entry_t *av = NULL;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_ISEND);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_ISEND);
-
+    fprintf(stdout, "%ld, MPID_Isend, comm=%x, seq=%d\n", pthread_self(), comm->handle, comm->seq);
     av = MPIDIU_comm_rank_to_av(comm, rank);
     mpi_errno =
         MPIDI_isend_safe(buf, count, datatype, rank, tag, comm, context_offset, av, request);
@@ -390,10 +397,12 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_psend_init(MPIDI_ptype ptype,
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_PSEND_INIT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_PSEND_INIT);
+    int vni_src = comm->seq % MPIDI_CH4_MAX_VCIS;
+    int vni_dst = comm->seq % MPIDI_CH4_MAX_VCIS;
 
-    MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(0).lock);
-    sreq = MPIR_Request_create_from_pool(MPIR_REQUEST_KIND__PREQUEST_SEND, 0);
-    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(0).lock);
+    MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vni_src).lock);
+    sreq = MPIR_Request_create_from_pool(MPIR_REQUEST_KIND__PREQUEST_SEND, vni_src);
+    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vni_src).lock);
     MPIR_ERR_CHKANDSTMT(sreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
     *request = sreq;
 

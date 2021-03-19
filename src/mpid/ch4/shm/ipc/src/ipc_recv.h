@@ -96,7 +96,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_mpi_irecv(void *buf, MPI_Aint count, MPI_
     MPIR_Comm *root_comm = NULL;
     MPIR_Request *unexp_req = NULL;
     MPIR_Context_id_t context_id = comm->recvcontext_id + context_offset;
-
+    fprintf(stdout, "%ld, MPIDI_IPC_mpi_irecv, vci=%d\n", pthread_self(), vni);
     /* When matches with an unexpected receive, it first tries to receive as
      * an IPC optimized message (e.g., XPMEM SEND LMT). If fails, then receives
      * as CH4 am message. Note that we maintain IPC optimized message in the
@@ -124,7 +124,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_mpi_irecv(void *buf, MPI_Aint count, MPI_
     } else {
         /* No matching request found, post the receive request  */
         MPIR_Request *rreq = NULL;
-
+        fprintf(stdout, "%ld, ipc_recv, vci=%d\n", pthread_self(), vni);
         rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RECV, 2, vni);
         MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
 

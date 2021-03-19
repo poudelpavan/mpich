@@ -46,6 +46,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_get_vci(int flag, MPIR_Comm * comm_ptr,
 MPL_STATIC_INLINE_PREFIX int MPIDI_get_vci(int flag, MPIR_Comm * comm_ptr,
                                            int src_rank, int dst_rank, int tag)
 {
+    fprintf(stdout, "%ld, comm_ptr=%x, seq=%d\n", pthread_self(), comm_ptr->handle, comm_ptr->seq);
     return comm_ptr->seq;
 }
 

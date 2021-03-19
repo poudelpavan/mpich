@@ -64,6 +64,8 @@ int MPIDI_OFI_nopack_putget(const void *origin_addr, int origin_count,
     int vni_src = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
     int vni_dst = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
 
+    fprintf(stdout, "%ld, MPIDI_OFI_nopack_putget, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
+
     MPIR_Datatype_get_size_macro(origin_datatype, origin_bytes);
     origin_bytes *= origin_count;
     MPIR_Datatype_get_size_macro(target_datatype, target_bytes);
@@ -109,7 +111,7 @@ int MPIDI_OFI_nopack_putget(const void *origin_addr, int origin_count,
         } else
 #endif
         {
-            MPIDI_OFI_REQUEST_CREATE(*sigreq, MPIR_REQUEST_KIND__RMA, 0);
+            MPIDI_OFI_REQUEST_CREATE(*sigreq, MPIR_REQUEST_KIND__RMA, vni_src);
         }
         flags = FI_COMPLETION | FI_DELIVERY_COMPLETE;
     } else {
@@ -192,6 +194,7 @@ static int issue_packed_put(MPIR_Win * win, MPIDI_OFI_win_request_t * req)
     int vni_src = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
     int vni_dst = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
 
+    fprintf(stdout, "%ld, issue_packed_put, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
     if (sigreq)
         flags = FI_COMPLETION | FI_DELIVERY_COMPLETE;
     else
@@ -280,6 +283,7 @@ static int issue_packed_get(MPIR_Win * win, MPIDI_OFI_win_request_t * req)
     void *pack_buffer;
     int vni_src = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
     int vni_dst = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
+    fprintf(stdout, "%ld, issue_packed_get, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
 
     if (sigreq)
         flags = FI_COMPLETION | FI_DELIVERY_COMPLETE;

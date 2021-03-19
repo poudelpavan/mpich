@@ -39,6 +39,7 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_set_progress_vci(MPIR_Request * req,
 
     state->vci_count = 1;
     state->vci[0] = vci;
+    fprintf(stdout, "%ld, exit MPIDI_set_progress_vci vci=%d\n", pthread_self(), vci);
 }
 
 MPL_STATIC_INLINE_PREFIX void MPIDI_set_progress_vci_n(int n, MPIR_Request ** reqs,

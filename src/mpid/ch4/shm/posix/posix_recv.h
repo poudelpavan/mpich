@@ -61,6 +61,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_mpi_irecv(void *buf,
 {
     int vni_src = 0, vni_dst = 0;
     MPIDI_POSIX_RECV_VNIS(vni_src, vni_dst);
+    fprintf(stdout, "%ld, MPIDI_POSIX_mpi_irecv, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
     int mpi_errno =
         MPIDIG_mpi_irecv(buf, count, datatype, rank, tag, comm, context_offset, vni_src, vni_dst, request, 1, NULL);
     MPIDI_POSIX_recv_posted_hook(*request, rank, comm);

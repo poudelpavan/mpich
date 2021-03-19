@@ -31,17 +31,18 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPCI_send_contig_lmt(const void *buf, MPI_Ain
                                                         MPIDI_IPCI_ipc_attr_t ipc_attr,
                                                         MPIR_Request ** request)
 {
-    int mpi_errno = MPI_SUCCESS;
+    int mpi_errno = MPI_SUCCESS, vci = 0;
     MPIR_Request *sreq = NULL;
     MPIDI_SHMI_ctrl_hdr_t ctrl_hdr;
     MPIDI_IPC_ctrl_send_contig_lmt_rts_t *slmt_req_hdr = &ctrl_hdr.ipc_contig_slmt_rts;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_IPCI_SEND_CONTIG_LMT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_IPCI_SEND_CONTIG_LMT);
-
+    vci = comm->seq % MPIDI_CH4_MAX_VCIS;
+    fprintf(stdout, "%ld, ipc_p2p, vci=%d\n", pthread_self(), vci);
     /* Create send request */
     MPIR_Datatype_add_ref_if_not_builtin(datatype);
-    sreq = MPIDIG_request_create(MPIR_REQUEST_KIND__SEND, 2,  comm->seq);
+    sreq = MPIDIG_request_create(MPIR_REQUEST_KIND__SEND, 2,  vci);
     MPIR_ERR_CHKANDSTMT((sreq) == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
     *request = sreq;
     MPIDIG_REQUEST(sreq, buffer) = (void *) buf;

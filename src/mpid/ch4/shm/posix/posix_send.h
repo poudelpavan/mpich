@@ -48,6 +48,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_mpi_isend(const void *buf, MPI_Aint cou
 {
     int vni_src = 0, vni_dst = 0;
     MPIDI_POSIX_SEND_VNIS(vni_src, vni_dst);
+    fprintf(stdout, "%ld, MPIDI_POSIX_mpi_isend, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
     return MPIDIG_mpi_isend(buf, count, datatype, rank, tag, comm, context_offset, addr, vni_src, vni_dst, request);
 }
 

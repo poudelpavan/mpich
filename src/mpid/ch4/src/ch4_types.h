@@ -234,6 +234,8 @@ typedef union MPIDI_vci {
 typedef struct {
     MPIDIG_rreq_t *posted_lst;
     MPIDIG_rreq_t *unexp_lst;
+    MPIDU_genq_private_pool_t request_pool;
+    MPIDU_genq_private_pool_t unexp_pack_buf_pool;
 }per_vci_queue;
 
 typedef struct MPIDI_CH4_Global_t {
@@ -258,8 +260,7 @@ typedef struct MPIDI_CH4_Global_t {
     MPIDIG_req_ext_t *cmpl_list;
     MPL_atomic_uint64_t exp_seq_no;
     MPL_atomic_uint64_t nxt_seq_no;
-    MPIDU_genq_private_pool_t request_pool;
-    MPIDU_genq_private_pool_t unexp_pack_buf_pool;
+    
 #ifdef HAVE_SIGNAL
     void (*prev_sighandler) (int);
     volatile int sigusr1_count;

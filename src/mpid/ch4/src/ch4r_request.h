@@ -40,7 +40,8 @@ MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDIG_request_create(MPIR_Request_kind_t
 #endif
 
     MPL_COMPILE_TIME_ASSERT(sizeof(MPIDIG_req_ext_t) <= MPIDIU_REQUEST_POOL_CELL_SIZE);
-    MPIDU_genq_private_pool_alloc_cell(MPIDI_global.request_pool,
+    fprintf(stdout, "%ld, MPIDIG_request_create, genq_private_pool_alloc_cell\n", pthread_self());
+    MPIDU_genq_private_pool_alloc_cell(MPIDI_global.queue[vni].request_pool,
                                        (void **) &MPIDIG_REQUEST(req, req));
     MPIR_Assert(MPIDIG_REQUEST(req, req));
     MPIDIG_REQUEST(req, req->status) = 0;
@@ -56,7 +57,7 @@ MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDIG_request_create(MPIR_Request_kind_t
 }
 
 MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDIG_request_init(MPIR_Request * req,
-                                                           MPIR_Request_kind_t kind)
+                                                           MPIR_Request_kind_t kind, int vni)
 {
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_REQUEST_INIT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_REQUEST_INIT);
@@ -71,7 +72,7 @@ MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDIG_request_init(MPIR_Request * req,
 #endif
 
     MPL_COMPILE_TIME_ASSERT(sizeof(MPIDIG_req_ext_t) <= MPIDIU_REQUEST_POOL_CELL_SIZE);
-    MPIDU_genq_private_pool_alloc_cell(MPIDI_global.request_pool,
+    MPIDU_genq_private_pool_alloc_cell(MPIDI_global.queue[vni].request_pool,
                                        (void **) &MPIDIG_REQUEST(req, req));
     MPIR_Assert(MPIDIG_REQUEST(req, req));
     MPIDIG_REQUEST(req, req->status) = 0;

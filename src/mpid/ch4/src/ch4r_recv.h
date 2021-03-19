@@ -51,6 +51,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_handle_unexp_mrecv(MPIR_Request * rreq)
     void *buf;
     MPI_Aint count;
     MPI_Datatype datatype;
+    int vci = 0;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_HANDLE_UNEXP_MRECV);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_HANDLE_UNEXP_MRECV);
@@ -95,8 +96,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_handle_unexp_mrecv(MPIR_Request * rreq)
     } else {
         MPIR_Typerep_copy((char *) buf + dt_true_lb, MPIDIG_REQUEST(rreq, buffer), nbytes);
     }
-
-    MPIDU_genq_private_pool_free_cell(MPIDI_global.unexp_pack_buf_pool,
+    fprintf(stdout, "%ld, MPIDIG_handle_unexp_mrecv, MPIDI_Request_get_vci\n", pthread_self());
+    vci = MPIDI_Request_get_vci(rreq);
+    MPIDU_genq_private_pool_free_cell(MPIDI_global.queue[vci].unexp_pack_buf_pool,
                                       MPIDIG_REQUEST(rreq, buffer));
     rreq->kind = MPIR_REQUEST_KIND__RECV;
 

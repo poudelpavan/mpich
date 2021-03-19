@@ -31,7 +31,7 @@ int MPIDI_IPCI_send_contig_lmt_fin_cb(MPIDI_SHMI_ctrl_hdr_t * ctrl_hdr)
 
 int MPIDI_IPCI_send_contig_lmt_rts_cb(MPIDI_SHMI_ctrl_hdr_t * ctrl_hdr)
 {
-    int mpi_errno = MPI_SUCCESS;
+    int mpi_errno = MPI_SUCCESS, vci = 0;
     MPIDI_IPC_ctrl_send_contig_lmt_rts_t *slmt_rts_hdr = &ctrl_hdr->ipc_contig_slmt_rts;
     MPIR_Request *rreq = NULL;
     MPIR_Comm *root_comm;
@@ -49,6 +49,7 @@ int MPIDI_IPCI_send_contig_lmt_rts_cb(MPIDI_SHMI_ctrl_hdr_t * ctrl_hdr)
      * we increase its refcount at enqueue time. */
     root_comm = MPIDIG_context_id_to_comm(slmt_rts_hdr->context_id);
     if (root_comm) {
+        vci=root_comm->seq % MPIDI_CH4_MAX_VCIS;
         while (TRUE) {
             rreq = MPIDIG_dequeue_posted(slmt_rts_hdr->src_rank, slmt_rts_hdr->tag,
                                          slmt_rts_hdr->context_id, 1,
@@ -84,8 +85,9 @@ int MPIDI_IPCI_send_contig_lmt_rts_cb(MPIDI_SHMI_ctrl_hdr_t * ctrl_hdr)
                                                slmt_rts_hdr->data_sz, slmt_rts_hdr->sreq_ptr, rreq);
         MPIR_ERR_CHECK(mpi_errno);
     } else {
+        fprintf(stdout, "%ld, MPIDI_IPCI_send, vci=%d\n", pthread_self(), vci);
         /* Enqueue unexpected receive request */
-        rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RECV, 2, root_comm->seq);
+        rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RECV, 2, vci);
         MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
 
         /* store CH4 am rreq info */

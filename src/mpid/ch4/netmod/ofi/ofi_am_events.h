@@ -93,6 +93,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_short_am(MPIDI_OFI_am_header_t * m
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_HANDLE_SHORT_AM);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_HANDLE_SHORT_AM);
+	// fprintf(stdout, "%ld, MPIDI_OFI_handle_short_am, vci = %d\n", pthread_self(), vci);
 
     /* note: setting is_local, is_async, req to 0, 0, NULL */
     MPIDIG_global.target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
@@ -114,6 +115,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_pipeline(MPIDI_OFI_am_header_t * m
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_HANDLE_PIPELINE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_HANDLE_PIPELINE);
+    // fprintf(stdout, "%ld, MPIDI_OFI_handle_pipeline, vci = %d\n", pthread_self(), vci);
 
     cache_rreq = MPIDIG_req_cache_lookup(MPIDI_OFI_global.req_map, (uint64_t) msg_hdr->fi_src_addr);
     MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
@@ -149,6 +151,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_short_am_hdr(MPIDI_OFI_am_header_t
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_HANDLE_SHORT_AM_HDR);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_HANDLE_SHORT_AM_HDR);
+    // fprintf(stdout, "%ld, MPIDI_OFI_handle_short_am_hdr, vci = %d\n", pthread_self(), vci);
 
     MPIDIG_global.target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
                                                        NULL, 0, 0, 0, NULL, vci);
@@ -179,6 +182,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_rdma_read(void *dst,
         comm = MPIDIG_context_id_to_comm(context_id);
         vni_src = comm->seq % MPIDI_CH4_MAX_VCIS;
         vni_dst = comm->seq % MPIDI_CH4_MAX_VCIS;
+        // fprintf(stdout, "%ld, MPIDI_OFI_do_rdma_read, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
         MPIR_Assert(comm);
         MPIR_Assert(sizeof(MPIDI_OFI_am_request_t) <= MPIDI_OFI_AM_HDR_POOL_CELL_SIZE);
         MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.am_list[vni_src].am_hdr_buf_pool, (void **) &am_req);
@@ -232,6 +236,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_rdma_read(MPIDI_OFI_am_header_t * 
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_HANDLE_RDMA_READ);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_HANDLE_RDMA_READ);
+    // fprintf(stdout, "%ld, MPIDI_OFI_handle_rdma_read, vci=%d\n", pthread_self(), vci);
 
     /* note: setting is_local, is_async to 0, 1 */
     MPIDIG_global.target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
@@ -252,6 +257,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_rdma_read(MPIDI_OFI_am_header_t * 
     if (!lmt_msg->reg_sz) {
         MPIDIG_REQUEST(rreq, req->target_cmpl_cb) (rreq);
         MPID_Request_complete(rreq);
+        // fprintf(stdout, "%ld, init complete\n", pthread_self());
         goto fn_exit;
     }
 
@@ -260,6 +266,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_rdma_read(MPIDI_OFI_am_header_t * 
     MPIDI_OFI_AMREQUEST_HDR(rreq, rreq_ptr) = (void *) rreq;
 
     if (MPIDIG_IS_REQUEST_READY_FOR_RECV(rreq)) {
+        // fprintf(stdout, "%ld, MPIDIG_IS_REQUEST_READY_FOR_RECV\n", pthread_self());
         do_long_am_recv(lmt_msg->reg_sz, rreq, lmt_msg);
         /* completion in lmt event functions */
     }

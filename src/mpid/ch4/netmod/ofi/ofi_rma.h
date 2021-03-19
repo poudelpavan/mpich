@@ -367,6 +367,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_get(void *origin_addr,
     struct iovec iov;
     int vni_src = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
     int vni_dst = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
+    fprintf(stdout, "%ld, MPIDI_OFI_do_get, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_DO_GET);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_DO_GET);
@@ -409,7 +410,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_get(void *origin_addr,
             } else
 #endif
             {
-                MPIDI_OFI_REQUEST_CREATE(*sigreq, MPIR_REQUEST_KIND__RMA, 0);
+                MPIDI_OFI_REQUEST_CREATE(*sigreq, MPIR_REQUEST_KIND__RMA, vni_src);
             }
             flags = FI_COMPLETION | FI_DELIVERY_COMPLETE;
         } else {
@@ -567,6 +568,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_compare_and_swap(const void *origin_ad
     struct fi_msg_atomic msg;
     int vni_src = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
     int vni_dst = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
+    fprintf(stdout, "%ld, MPIDI_NM_mpi_compare_and_swap, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
 
     if (
 #ifndef MPIDI_CH4_DIRECT_NETMOD
@@ -677,6 +679,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_accumulate(const void *origin_addr,
     MPI_Aint origin_true_lb, target_true_lb;
     int vni_src = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
     int vni_dst = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
+    fprintf(stdout, "%ld, MPIDI_OFI_do_accumulate, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_DO_ACCUMULATE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_DO_ACCUMULATE);
@@ -737,7 +740,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_accumulate(const void *origin_addr,
             } else
 #endif
             {
-                MPIDI_OFI_REQUEST_CREATE(*sigreq, MPIR_REQUEST_KIND__RMA, 0);
+                MPIDI_OFI_REQUEST_CREATE(*sigreq, MPIR_REQUEST_KIND__RMA, vni_src);
             }
             flags = FI_COMPLETION | FI_DELIVERY_COMPLETE;
         } else {
@@ -817,6 +820,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_get_accumulate(const void *origin_addr
     MPI_Aint origin_true_lb, target_true_lb, result_true_lb;
     int vni_src = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
     int vni_dst = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
+    fprintf(stdout, "%ld, MPIDI_OFI_do_get_accumulate, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_DO_GET_ACCUMULATE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_DO_GET_ACCUMULATE);
@@ -877,7 +881,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_get_accumulate(const void *origin_addr
             } else
 #endif
             {
-                MPIDI_OFI_REQUEST_CREATE(*sigreq, MPIR_REQUEST_KIND__RMA, 0);
+                MPIDI_OFI_REQUEST_CREATE(*sigreq, MPIR_REQUEST_KIND__RMA, vni_src);
             }
             flags = FI_COMPLETION | FI_DELIVERY_COMPLETE;
         } else {
@@ -937,7 +941,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_get_accumulate(const void *origin_addr
   null_op_exit:
     mpi_errno = MPI_SUCCESS;
     if (sigreq) {
-        *sigreq = MPIR_Request_create_from_pool(MPIR_REQUEST_KIND__RMA, 0);
+        *sigreq = MPIR_Request_create_from_pool(MPIR_REQUEST_KIND__RMA, vni_src);
         MPIR_ERR_CHKANDSTMT((*sigreq) == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail,
                             "**nomemreq");
         MPIR_Request_add_ref(*sigreq);
@@ -1064,6 +1068,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_fetch_and_op(const void *origin_addr,
     struct fi_msg_atomic msg;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_MPI_FETCH_AND_OP);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_FETCH_AND_OP);
+    fprintf(stdout, "%ld, MPIDI_NM_mpi_fetch_and_op, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
 
     if (
 #ifndef MPIDI_CH4_DIRECT_NETMOD
