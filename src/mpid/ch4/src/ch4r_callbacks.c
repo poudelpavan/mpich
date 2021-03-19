@@ -105,8 +105,9 @@ static int handle_unexp_cmpl(MPIR_Request * rreq)
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_HANDLE_UNEXP_CMPL);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_HANDLE_UNEXP_CMPL);
-
+    fprintf(stdout, "%ld, handle_unexp_cmpl, get vci\n", pthread_self());
     vci = MPIDI_Request_get_vci(rreq);
+    fprintf(stdout, "%ld, handle_unexp_cmpl, vci=%d\n", pthread_self(), vci);
     /* Check if this message has already been claimed by mprobe. */
     /* MPIDI_CS_ENTER(); */
     if (MPIDIG_REQUEST(rreq, req->status) & MPIDIG_REQ_UNEXP_DQUED) {

@@ -94,10 +94,10 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_am_clear_request(MPIR_Request * sreq)
 }
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_init_request(const void *am_hdr,
-                                                       size_t am_hdr_sz, MPIR_Request * sreq)
+                                                       size_t am_hdr_sz, MPIR_Request * sreq, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
-    int vci = MPIDI_Request_get_vci(sreq);
+    //int vci = MPIDI_Request_get_vci(sreq);
     MPIDI_OFI_am_request_header_t *req_hdr;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_AM_INIT_REQUEST);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_AM_INIT_REQUEST);
@@ -389,7 +389,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_eager(int rank, MPIR_Comm * c
 
     if (!issue_deferred) {
         MPIDI_OFI_AMREQUEST(sreq, req_hdr) = NULL;
-        mpi_errno = MPIDI_OFI_am_init_request(am_hdr, am_hdr_sz, sreq);
+        mpi_errno = MPIDI_OFI_am_init_request(am_hdr, am_hdr_sz, sreq, vni_src);
         MPIR_ERR_CHECK(mpi_errno);
 
         MPIDI_Datatype_check_contig_size(datatype, count, dt_contig, data_sz);
@@ -579,7 +579,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_pipeline(int rank, MPIR_Comm 
 
     if (!issue_deferred) {
         MPIDI_OFI_AMREQUEST(sreq, req_hdr) = NULL;
-        mpi_errno = MPIDI_OFI_am_init_request(am_hdr, am_hdr_sz, sreq);
+        mpi_errno = MPIDI_OFI_am_init_request(am_hdr, am_hdr_sz, sreq, vni_src);
         MPIR_ERR_CHECK(mpi_errno);
 
         MPIDI_Datatype_check_contig(datatype, dt_contig);
@@ -711,7 +711,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_rdma_read(int rank, MPIR_Comm
 
     if (!issue_deferred) {
         MPIDI_OFI_AMREQUEST(sreq, req_hdr) = NULL;
-        mpi_errno = MPIDI_OFI_am_init_request(am_hdr, am_hdr_sz, sreq);
+        mpi_errno = MPIDI_OFI_am_init_request(am_hdr, am_hdr_sz, sreq, vni_src);
         MPIR_ERR_CHECK(mpi_errno);
 
         MPIDI_Datatype_check_contig_size(datatype, count, dt_contig, data_sz);

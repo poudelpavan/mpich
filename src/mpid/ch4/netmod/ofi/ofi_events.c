@@ -588,10 +588,10 @@ static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int
     uint16_t expected_seqno, next_seqno;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_AM_RECV_EVENT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_AM_RECV_EVENT);
-
+    fprintf(stdout, "%ld, enter am_recv_event\n", pthread_self());
     void *orig_buf = wc->buf;   /* needed in case we will copy the header for alignment fix */
     am_hdr = (MPIDI_OFI_am_header_t *) wc->buf;
-    fprintf(stdout, "%ld, am_recv_event, fi_cq_tagged_entry (wc->buf)=%p, am_hdr->context=%d\n", pthread_self(), orig_buf, ((MPIDIG_hdr_t *) am_hdr)->context_id);
+    fprintf(stdout, "%ld, am_recv_event, fi_cq_tagged_entry (wc->buf)=%p, am_hdr->context=%d, type=%d\n", pthread_self(), orig_buf, ((MPIDIG_hdr_t *) am_hdr)->context_id, am_hdr->am_type);
 
 #if NEEDS_STRICT_ALIGNMENT
     /* FI_MULTI_RECV may pack the message at lesser alignment, copy the header
