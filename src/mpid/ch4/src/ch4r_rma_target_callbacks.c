@@ -1577,7 +1577,7 @@ int MPIDIG_get_acc_dt_ack_target_msg_cb(int handler_id, void *am_hdr, void *data
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_GET_ACC_DT_ACK_TARGET_MSG_CB);
     MPIR_T_PVAR_TIMER_START(RMA, rma_targetcb_get_acc_dt_ack);
     vci = root_comm->seq % MPIDI_CH4_MAX_VCIS;
-    fprintf(stdout, "%ld, MPIDIG_get_acc_dt_ack_target_msg_cb, vci=%d\n", pthread_self(), vci);
+    //fprintf(stdout, "%ld, MPIDIG_get_acc_dt_ack_target_msg_cb, vci=%d\n", pthread_self(), vci);
 
     rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RMA, 1, vci);
     MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");

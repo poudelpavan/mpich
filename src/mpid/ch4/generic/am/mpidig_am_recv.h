@@ -137,16 +137,18 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_do_irecv(void *buf, MPI_Aint count, MPI_Data
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_DO_IRECV);
 
     root_comm = MPIDIG_context_id_to_comm(context_id);
-    fprintf(stdout,"thread %ld, irecv, root_comm = %x, seq no = %d, context_id = %d, context_offset = %d, vci = %d, checked unexp_list = %p\n", pthread_self(),root_comm->handle, root_comm->seq, context_id,context_offset, vni_dst, MPIDI_global.queue[vni_dst].unexp_lst);
-    for(i = 0; i < 3; i++){
-            fprintf(stdout, "%ld, irecv, vni_dst=%d, unexp_lst[%d]=%p\n", pthread_self(), vni_dst, i, MPIDI_global.queue[i].unexp_lst); 
-        }
-    fprintf(stdout, "%ld, recv, before dequeue, unexp_lst[%d]=%p, alloc_req=%d\n", pthread_self(),vni_dst, MPIDI_global.queue[vni_dst].unexp_lst, alloc_req);
+    //fprintf(stdout,"thread %ld, irecv, root_comm = %x, seq no = %d, context_id = %d, context_offset = %d, vci = %d, checked unexp_list = %p\n", pthread_self(),root_comm->handle, root_comm->seq, context_id,context_offset, vni_dst, MPIDI_global.queue[vni_dst].unexp_lst);
+    // for(i = 0; i < 3; i++){
+    //        fprintf(stdout, "%ld, irecv, vni_dst=%d, unexp_lst[%d]=%p\n", pthread_self(), vni_dst, i, MPIDI_global.queue[i].unexp_lst); 
+    //    }
+    //if(vni_src != 0)    
+        fprintf(stdout, "%ld, recv, before dequeue, unexp_lst[%d]=%p, alloc_req=%d\n", pthread_self(),vni_dst, MPIDI_global.queue[vni_dst].unexp_lst, alloc_req);
     unexp_req = MPIDIG_dequeue_unexp(rank, tag, context_id, &(MPIDI_global.queue[vni_dst].unexp_lst));
-    fprintf(stdout, "%ld, dequeued, unexp_req=%d, unexp_lst[%d]=%p\n", pthread_self(), unexp_req==NULL, vni_dst, MPIDI_global.queue[vni_dst].unexp_lst);
+    //if(vni_src != 0)
+        fprintf(stdout, "%ld, dequeued, unexp_req=%d, unexp_lst[%d]=%p\n", pthread_self(), unexp_req==NULL, vni_dst, MPIDI_global.queue[vni_dst].unexp_lst);
 
     if (unexp_req) {
-        fprintf(stdout,"thread %ld, unexp_req, context_id = %d, unexp_list = %p\n", pthread_self(),context_id, MPIDI_global.queue[vni_dst].unexp_lst);
+        //fprintf(stdout,"thread %ld, unexp_req, context_id = %d, unexp_list = %p\n", pthread_self(),context_id, MPIDI_global.queue[vni_dst].unexp_lst);
         MPIR_Comm_release(root_comm);   /* -1 for removing from unexp_list */
         if (MPIDIG_REQUEST(unexp_req, req->status) & MPIDIG_REQ_BUSY) {
             MPIDIG_REQUEST(unexp_req, req->status) |= MPIDIG_REQ_MATCHED;
@@ -261,9 +263,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_do_irecv(void *buf, MPI_Aint count, MPI_Data
         /* Increment refcnt for comm before posting rreq to posted_list,
          * to make sure comm is alive while holding an entry in the posted_list */
         MPIR_Comm_add_ref(root_comm);
-        fprintf(stdout, "%ld, recv, before enqueue, posted_lst[%d]=%p, rreq->handle=%x &req->dev.ch4.am.req->rreq=%p\n", pthread_self(),vni_dst, MPIDI_global.queue[vni_dst].posted_lst, rreq->handle, &rreq->dev.ch4.am.req->rreq);
+        //if(vni_src > 0)
+        fprintf(stdout, "%ld, recv, before enqueue, posted_lst[%d]=%p, rreq->handle=%x\n", pthread_self(),vni_dst, MPIDI_global.queue[vni_dst].posted_lst, rreq->handle);
         MPIDIG_enqueue_posted(rreq, &(MPIDI_global.queue[vni_dst].posted_lst));
-        fprintf(stdout, "%ld, enqueued, &posted_lst[%d]=%p, posted_lst[%d]=%p\n", pthread_self(),vni_dst, &(MPIDI_global.queue[vni_dst].posted_lst), vni_dst, MPIDI_global.queue[vni_dst].posted_lst);
+        //if(vni_src > 0)
+            fprintf(stdout, "%ld, enqueued, &posted_lst[%d]=%p, posted_lst[%d]=%p\n", pthread_self(),vni_dst, &(MPIDI_global.queue[vni_dst].posted_lst), vni_dst, MPIDI_global.queue[vni_dst].posted_lst);
         /* MPIDI_CS_EXIT(); */
     } else {
         MPIDIG_REQUEST(unexp_req, req->rreq.match_req) = rreq;
@@ -295,7 +299,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_imrecv(void *buf,
     MPIDIG_REQUEST(message, req->rreq.mrcv_count) = count;
     MPIDIG_REQUEST(message, req->rreq.mrcv_datatype) = datatype;
     MPIR_Datatype_add_ref_if_not_builtin(datatype);
-    fprintf(stdout, "%ld, MPIDIG_mpi_imrecv, vci=%d\n", pthread_self(), vci);
+    //fprintf(stdout, "%ld, MPIDIG_mpi_imrecv, vci=%d\n", pthread_self(), vci);
     /* MPIDI_CS_ENTER(); */
     if (MPIDIG_REQUEST(message, req->status) & MPIDIG_REQ_BUSY) {
         MPIDIG_REQUEST(message, req->status) |= MPIDIG_REQ_UNEXP_CLAIMED;
@@ -359,8 +363,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_irecv(void *buf,
     /* For anysource recv, we may be called while holding the vci lock of shm request (to
      * prevent shm progress). Therefore, recursive locking is allowed here */
     MPID_THREAD_CS_ENTER_REC_VCI(MPIDI_VCI(vni_dst).lock);
-    if(tag == 0)
-        fprintf(stdout,"(recv)thread %ld, vni_src = %d, vni_dst = %d, comm = %x,context_id=%d, tag = %d\n",pthread_self(),vni_src,vni_dst,comm->handle,comm->context_id,tag);
+  //  if(tag == 0)
+   //     fprintf(stdout,"(recv)thread %ld, vni_src = %d, vni_dst = %d, comm = %x,context_id=%d, tag = %d\n",pthread_self(),vni_src,vni_dst,comm->handle,comm->context_id,tag);
 
     mpi_errno =
         MPIDIG_do_irecv(buf, count, datatype, rank, tag, comm, context_offset, vni_src, vni_dst, request, 1, 0ULL);
@@ -388,7 +392,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_cancel_recv(MPIR_Request * rreq)
         root_comm = MPIDIG_context_id_to_comm(MPIDIG_REQUEST(rreq, context_id));
         // vci = MPIDI_Request_get_vci(rreq);
         vci = root_comm->seq % MPIDI_CH4_MAX_VCIS;
-        fprintf(stdout, "%ld, MPIDIG_mpi_cancel_recv, vci=%d\n", pthread_self(), vci);
+     //   fprintf(stdout, "%ld, MPIDIG_mpi_cancel_recv, vci=%d\n", pthread_self(), vci);
         /* MPIDI_CS_ENTER(); */
         found =
             MPIDIG_delete_posted(&MPIDIG_REQUEST(rreq, req->rreq),

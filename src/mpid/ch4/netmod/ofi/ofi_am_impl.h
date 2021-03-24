@@ -77,7 +77,7 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_am_clear_request(MPIR_Request * sreq)
     int vci = MPIDI_Request_get_vci(sreq);
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_AM_CLEAR_REQUEST);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_AM_CLEAR_REQUEST);
-    fprintf(stdout, "%ld, MPIDI_OFI_am_clear_request, vci=%d\n", pthread_self(), vci);
+   // fprintf(stdout, "%ld, MPIDI_OFI_am_clear_request, vci=%d\n", pthread_self(), vci);
 
     req_hdr = MPIDI_OFI_AMREQUEST(sreq, req_hdr);
 
@@ -85,7 +85,7 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_am_clear_request(MPIR_Request * sreq)
         goto fn_exit;
 
     MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.am_list[vci].am_hdr_buf_pool, req_hdr);
-    fprintf(stdout, "%ld, exit from MPIDU_genq_private_pool_free_cell\n", pthread_self());
+   // fprintf(stdout, "%ld, exit from MPIDU_genq_private_pool_free_cell\n", pthread_self());
     MPIDI_OFI_AMREQUEST(sreq, req_hdr) = NULL;
 
   fn_exit:

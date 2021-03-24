@@ -269,7 +269,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_rdma_read(MPIDI_OFI_am_header_t * 
         do_long_am_recv(lmt_msg->reg_sz, rreq, lmt_msg);
         /* completion in lmt event functions */
     }
-    fprintf(stdout, "%ld, exit MPIDI_OFI_handle_rdma_read, vci=%d\n", pthread_self(), vci);
+    //fprintf(stdout, "%ld, exit MPIDI_OFI_handle_rdma_read, vci=%d\n", pthread_self(), vci);
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_HANDLE_RDMA_READ);

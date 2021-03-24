@@ -18,7 +18,7 @@
 #define CACHELINE_SIZE 64
 
 #define MESSAGE_SIZE 8
-#define NUM_MESSAGES 64000
+#define NUM_MESSAGES 6400
 #define WINDOW_SIZE 64
 
 #define ERROR_MARGIN 0.05       /* FIXME: a better margin? */
@@ -151,11 +151,11 @@ int main(int argc, char *argv[])
 
     /* Calculate message rate with multiple threads */
     if (rank == 0) {
-        MTestPrintfMsg(1, "Number of messages: %d\n", NUM_MESSAGES);
-        MTestPrintfMsg(1, "Message size: %d\n", MESSAGE_SIZE);
-        MTestPrintfMsg(1, "Window size: %d\n", WINDOW_SIZE);
-        MTestPrintfMsg(1, "Mmsgs/s with one thread: %-10.2f\n\n", onethread_msg_rate);
-        MTestPrintfMsg(1, "%-10s\t%-10s\t%-10s\n", "Thread", "Mmsgs/s", "Error");
+        fprintf(stdout, "Number of messages: %d\n", NUM_MESSAGES);
+        fprintf(stdout, "Message size: %d\n", MESSAGE_SIZE);
+        fprintf(stdout, "Window size: %d\n", WINDOW_SIZE);
+        fprintf(stdout, "Mmsgs/s with one thread: %-10.2f\n\n", onethread_msg_rate);
+        fprintf(stdout, "%-10s\t%-10s\t%-10s\n", "Thread", "Mmsgs/s", "Error");
 
         multithread_msg_rate = 0;
         errors = 0;
@@ -171,11 +171,11 @@ int main(int argc, char *argv[])
                         tid, my_msg_rate, onethread_msg_rate, (my_msg_rate / onethread_msg_rate),
                         ERROR_MARGIN);
             }
-            MTestPrintfMsg(1, "%-10d\t%-10.2f\t%-10d\n", tid, my_msg_rate, my_error);
+            fprintf(stdout, "%-10d\t%-10.2f\t%-10d\n", tid, my_msg_rate, my_error);
             multithread_msg_rate += my_msg_rate;
         }
-        MTestPrintfMsg(1, "\n%-10s\t%-10s\t%-10s\t%-10s\n", "Size", "Threads", "Mmsgs/s", "Errors");
-        MTestPrintfMsg(1, "%-10d\t%-10d\t%-10.2f\t%-10d\n", MESSAGE_SIZE, num_threads,
+        fprintf(stdout, "\n%-10s\t%-10s\t%-10s\t%-10s\n", "Size", "Threads", "Mmsgs/s", "Errors");
+        fprintf(stdout, "%-10d\t%-10d\t%-10.2f\t%-10d\n", MESSAGE_SIZE, num_threads,
                        multithread_msg_rate, errors);
     }
 

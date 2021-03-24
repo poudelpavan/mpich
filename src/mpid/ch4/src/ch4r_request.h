@@ -40,7 +40,7 @@ MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDIG_request_create(MPIR_Request_kind_t
 #endif
 
     MPL_COMPILE_TIME_ASSERT(sizeof(MPIDIG_req_ext_t) <= MPIDIU_REQUEST_POOL_CELL_SIZE);
-    fprintf(stdout, "%ld, MPIDIG_request_create, genq_private_pool_alloc_cell\n", pthread_self());
+    //fprintf(stdout, "%ld, MPIDIG_request_create, genq_private_pool_alloc_cell\n", pthread_self());
     MPIDU_genq_private_pool_alloc_cell(MPIDI_global.queue[vni].buffer_pool,
                                        (void **) &MPIDIG_REQUEST(req, req));
     MPIR_Assert(MPIDIG_REQUEST(req, req));

@@ -124,7 +124,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isendv(int rank,
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_AM_ISENDV);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_AM_ISENDV);
-    fprintf(stdout, "%ld, MPIDI_NM_am_isendv, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
+  //  fprintf(stdout, "%ld, MPIDI_NM_am_isendv, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
     for (i = 0; i < iov_len; i++) {
         am_hdr_sz += am_hdr[i].iov_len;
     }

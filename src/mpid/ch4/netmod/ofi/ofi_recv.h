@@ -306,7 +306,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_irecv(void *buf,
     
     int vni_src, vni_dst;
     MPIDI_OFI_RECV_VNIS(vni_src, vni_dst);
-    fprintf(stdout, "%ld, MPIDI_NM_mpi_irecv, ofi_recv, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
+   // fprintf(stdout, "%ld, MPIDI_NM_mpi_irecv, ofi_recv, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
     if (!MPIDI_OFI_ENABLE_TAGGED) {
         mpi_errno =
             MPIDIG_mpi_irecv(buf, count, datatype, rank, tag, comm, context_offset, vni_src, vni_dst, request, 0,
@@ -333,7 +333,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_cancel_recv(MPIR_Request * rreq)
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_MPI_CANCEL_RECV);
 
     int vni = MPIDI_Request_get_vci(rreq);
-    fprintf(stdout, "%ld, vni=%d\n", pthread_self(), vni);
+ //   fprintf(stdout, "%ld, vni=%d\n", pthread_self(), vni);
     if (!MPIDI_OFI_ENABLE_TAGGED) {
         mpi_errno = MPIDIG_mpi_cancel_recv(rreq);
         goto fn_exit;

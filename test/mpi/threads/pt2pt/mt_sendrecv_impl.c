@@ -18,12 +18,15 @@ int test_sendrecv(int id, int iter, int *buff, MPI_Comm comm, int tag, int verif
     if (rank == 0) {
         for (i = 0; i < iter; i++) {
             buff[i] = SETVAL(i, id);
+            fprintf(stdout, "(SEND) %ld, comm=%x, tag=%d, send_start=%d\n", pthread_self(), comm, tag, buff[i]);
             SEND_FUN(&buff[i], 1, type, 1, tag, comm);
+            fprintf(stdout, "(SEND) %ld, comm=%x, tag=%d, send_complete=%d\n", pthread_self(), comm, tag, buff[i]);
         }
     } else if (rank == 1) {
         for (i = 0; i < iter; i++) {
             buff[i] = -1;
             MPI_Recv(&buff[i], 1, type, 0, tag, comm, MPI_STATUS_IGNORE);
+            fprintf(stdout, "(RECV) %ld, comm=%x, tag=%d, received=%d\n", pthread_self(), comm, tag, buff[i]);
             if (!verify)
                 continue;
             if (buff[i] != SETVAL(i, id)) {

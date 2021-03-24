@@ -537,7 +537,7 @@ static int am_isend_event(struct fi_cq_tagged_entry *wc, MPIR_Request * sreq)
         mpi_errno = MPIDIG_global.origin_cbs[msg_hdr->handler_id] (sreq);
         MPIR_ERR_CHECK(mpi_errno);
     }
-    fprintf(stdout, "%ld, exit am_isend_event\n", pthread_self());
+   // fprintf(stdout, "%ld, exit am_isend_event\n", pthread_self());
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_AM_ISEND_EVENT);
     return mpi_errno;
@@ -588,10 +588,10 @@ static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int
     uint16_t expected_seqno, next_seqno;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_AM_RECV_EVENT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_AM_RECV_EVENT);
-    fprintf(stdout, "%ld, enter am_recv_event\n", pthread_self());
+   // fprintf(stdout, "%ld, enter am_recv_event\n", pthread_self());
     void *orig_buf = wc->buf;   /* needed in case we will copy the header for alignment fix */
     am_hdr = (MPIDI_OFI_am_header_t *) wc->buf;
-    fprintf(stdout, "%ld, am_recv_event, fi_cq_tagged_entry (wc->buf)=%p, am_hdr->context=%d, type=%d\n", pthread_self(), orig_buf, ((MPIDIG_hdr_t *) am_hdr)->context_id, am_hdr->am_type);
+   // fprintf(stdout, "%ld, am_recv_event, fi_cq_tagged_entry (wc->buf)=%p, am_hdr->context=%d, type=%d\n", pthread_self(), orig_buf, ((MPIDIG_hdr_t *) am_hdr)->context_id, am_hdr->am_type);
 
 #if NEEDS_STRICT_ALIGNMENT
     /* FI_MULTI_RECV may pack the message at lesser alignment, copy the header
@@ -620,6 +620,7 @@ static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int
                          "Enqueueing it to the queue.\n",
                          expected_seqno, am_hdr->seqno, am_hdr->am_type, am_hdr->fi_src_addr));
         mpi_errno = MPIDI_OFI_am_enqueue_unordered_msg(orig_buf, vci);
+        fprintf(stdout, "%ld, Expected seqno=%d but got %d (am_type=%d addr=%" PRIx64 ").\n", pthread_self(), expected_seqno, am_hdr->seqno, am_hdr->am_type, am_hdr->fi_src_addr);
         MPIR_ERR_CHECK(mpi_errno);
         goto fn_exit;
     }

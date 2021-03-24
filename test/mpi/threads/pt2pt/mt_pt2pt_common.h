@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define NTHREADS 4
+#define NTHREADS 2
 
 /* Set blocking send function */
 #if defined(BSEND)

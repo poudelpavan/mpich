@@ -153,12 +153,12 @@ int MPIDU_genq_private_pool_alloc_cell(MPIDU_genq_private_pool_t pool, void **ce
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDU_GENQ_PRIVATE_POOL_CELL_ALLOC);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDU_GENQ_PRIVATE_POOL_CELL_ALLOC);
 
-    fprintf(stdout, "%ld, No error, pool_obj=%p\n", pthread_self(), &pool_obj);
+    //fprintf(stdout, "%ld, No error, pool_obj=%p\n", pthread_self(), &pool_obj);
     if (pool_obj->free_list_head) {
         cell_h = pool_obj->free_list_head;
         pool_obj->free_list_head = cell_h->next;
         *cell = cell_h->cell;
-        fprintf(stdout, "%ld, *cell=%p\n", pthread_self(), &cell_h->cell);
+    //    fprintf(stdout, "%ld, *cell=%p\n", pthread_self(), &cell_h->cell);
         goto fn_exit;
     }
 

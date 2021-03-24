@@ -91,8 +91,8 @@ int main(int argc, char **argv)
     /*
      * Test 1 - all threads perform send/recv on MPI_COMM_WORLD with the same tag
      */
-    if (rank == 0)
-        MTestPrintfMsg(1, "Testing MT Send-Recv with same comm, same tag\n");
+    // if (rank == 0)
+    //     MTestPrintfMsg(1, "Testing MT Send-Recv with same comm, same tag\n");
 
     for (i = 0; i < NTHREADS; i++) {
         int err;
@@ -102,25 +102,25 @@ int main(int argc, char **argv)
         params[i].count = count;
     }
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    // MPI_Barrier(MPI_COMM_WORLD);
 
-    for (i = 0; i < NTHREADS; i++) {
-        params[i].comm = MPI_COMM_WORLD;
-        params[i].tag = 0;
-        params[i].verify = 0;   /* Since all threads perform communications over the
-                                 * same {comm, rank, tag}, message matching order becomes
-                                 * non-deterministic, so don't verify received data */
-        if (i == NTHREADS - 1)
-            run_test(&params[i]);
-        else
-            MTest_Start_thread(run_test, &params[i]);
-    }
-    MTest_Join_threads();
+    // for (i = 0; i < NTHREADS; i++) {
+    //     params[i].comm = MPI_COMM_WORLD;
+    //     params[i].tag = 0;
+    //     params[i].verify = 0;   /* Since all threads perform communications over the
+    //                              * same {comm, rank, tag}, message matching order becomes
+    //                              * non-deterministic, so don't verify received data */
+    //     if (i == NTHREADS - 1)
+    //         run_test(&params[i]);
+    //     else
+    //         MTest_Start_thread(run_test, &params[i]);
+    // }
+    // MTest_Join_threads();
 
-    for (i = 0; i < NTHREADS; i++)
-        errs += params[i].result;
+    // for (i = 0; i < NTHREADS; i++)
+    //     errs += params[i].result;
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    // MPI_Barrier(MPI_COMM_WORLD);
 
     /*
      * Test 2 - all threads perform send/recv over MPI_COMM_WORLD,
@@ -128,24 +128,24 @@ int main(int argc, char **argv)
      * Thus thread `i` in rank 0 exclusively communicate with thread `i`
      * in rank 1.
      */
-    if (rank == 0)
-        MTestPrintfMsg(1, "Testing MT Send-Recv with same comm, per-thread tag\n");
+    // if (rank == 0)
+    //     MTestPrintfMsg(1, "Testing MT Send-Recv with same comm, per-thread tag\n");
 
-    for (i = 0; i < NTHREADS; i++) {
-        params[i].comm = MPI_COMM_WORLD;
-        params[i].tag = i;
-        params[i].verify = 1;
-        if (i == NTHREADS - 1)
-            run_test(&params[i]);
-        else
-            MTest_Start_thread(run_test, &params[i]);
-    }
-    MTest_Join_threads();
+    // for (i = 0; i < NTHREADS; i++) {
+    //     params[i].comm = MPI_COMM_WORLD;
+    //     params[i].tag = i;
+    //     params[i].verify = 1;
+    //     if (i == NTHREADS - 1)
+    //         run_test(&params[i]);
+    //     else
+    //         MTest_Start_thread(run_test, &params[i]);
+    // }
+    // MTest_Join_threads();
 
-    for (i = 0; i < NTHREADS; i++)
-        errs += params[i].result;
+    // for (i = 0; i < NTHREADS; i++)
+    //     errs += params[i].result;
 
-    MPI_Barrier(MPI_COMM_WORLD);
+    // MPI_Barrier(MPI_COMM_WORLD);
 
     /*
      * Test 3 - Every thread performs send/recv over different communicator.
