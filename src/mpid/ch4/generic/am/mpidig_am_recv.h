@@ -226,11 +226,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_do_irecv(void *buf, MPI_Aint count, MPI_Data
                 }
                 MPIDIG_REQUEST(unexp_req, req->status) &= ~MPIDIG_REQ_UNEXPECTED;
                 MPIDIG_REQUEST(unexp_req, req->seq_no) =
-                    MPL_atomic_fetch_add_uint64(&MPIDI_global.nxt_seq_no, 1);
+                    MPL_atomic_fetch_add_uint64(&MPIDI_global.queue[vni_src].nxt_seq_no, 1);
                 MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
                                 (MPL_DBG_FDEST, "seq_no: me=%" PRIu64 " exp=%" PRIu64,
                                  MPIDIG_REQUEST(unexp_req, req->seq_no),
-                                 MPL_atomic_load_uint64(&MPIDI_global.exp_seq_no)));
+                                 MPL_atomic_load_uint64(&MPIDI_global.queue[vni_src].exp_seq_no)));
                 MPIDIG_recv_type_init(data_sz, unexp_req);
                 MPIDIG_do_am_recv(unexp_req);
                 MPIR_ERR_CHECK(mpi_errno);
@@ -324,11 +324,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_imrecv(void *buf,
             MPIDIG_REQUEST(message, recv_ready) = true;
             MPIDIG_REQUEST(message, req->status) &= ~MPIDIG_REQ_UNEXPECTED;
             MPIDIG_REQUEST(message, req->seq_no) =
-                MPL_atomic_fetch_add_uint64(&MPIDI_global.nxt_seq_no, 1);
+                MPL_atomic_fetch_add_uint64(&MPIDI_global.queue[vci].nxt_seq_no, 1);
             MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
                             (MPL_DBG_FDEST, "seq_no: me=%" PRIu64 " exp=%" PRIu64,
                              MPIDIG_REQUEST(message, req->seq_no),
-                             MPL_atomic_load_uint64(&MPIDI_global.exp_seq_no)));
+                             MPL_atomic_load_uint64(&MPIDI_global.queue[vci].exp_seq_no)));
             MPIDIG_recv_type_init(data_sz, message);
             MPIDIG_do_am_recv(message);
         }

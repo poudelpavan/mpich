@@ -137,10 +137,10 @@ int MPIDIG_am_init(void)
         // MPIDI_global.unexp_lst[i] = NULL;
         MPIDI_global.queue[i].posted_lst = NULL;
         MPIDI_global.queue[i].unexp_lst = NULL;
-    }
-    MPIDI_global.cmpl_list = NULL;
-    MPL_atomic_store_uint64(&MPIDI_global.exp_seq_no, 0);
-    MPL_atomic_store_uint64(&MPIDI_global.nxt_seq_no, 0);
+        MPIDI_global.queue[i].cmpl_list = NULL;
+        MPL_atomic_store_uint64(&MPIDI_global.queue[i].exp_seq_no, 0);
+        MPL_atomic_store_uint64(&MPIDI_global.queue[i].nxt_seq_no, 0);
+    }    
 
     MPL_atomic_store_int(&MPIDIG_global.rma_am_flag, 0);
     MPIR_cc_set(&MPIDIG_global.rma_am_poll_cntr, 0);

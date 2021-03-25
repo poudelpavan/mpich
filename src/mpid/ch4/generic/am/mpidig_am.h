@@ -74,7 +74,7 @@ typedef int (*MPIDIG_am_origin_cb) (MPIR_Request * req);
  */
 typedef int (*MPIDIG_am_target_msg_cb) (int handler_id, void *am_hdr,
                                         void *data, MPI_Aint data_sz,
-                                        int is_local, int is_async, MPIR_Request ** req, int vci);
+                                        int is_local, int is_async, MPIR_Request ** req);
 
 typedef struct MPIDIG_global_t {
     MPIDIG_am_target_msg_cb target_msg_cbs[MPIDI_AM_HANDLERS_MAX];

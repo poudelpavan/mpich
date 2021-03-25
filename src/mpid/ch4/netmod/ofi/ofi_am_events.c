@@ -8,18 +8,20 @@
 
 int MPIDI_OFI_am_rdma_read_ack_handler(int handler_id, void *am_hdr, void *data,
                                        MPI_Aint in_data_sz, int is_local, int is_async,
-                                       MPIR_Request ** req, int vni)
+                                       MPIR_Request ** req)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *sreq;
     MPIDI_OFI_am_rdma_read_ack_msg_t *ack_msg;
     int src_handler_id;
+    int vni = 0;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_AM_RDMA_READ_ACK_HANDLER);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_AM_RDMA_READ_ACK_HANDLER);
 
     ack_msg = (MPIDI_OFI_am_rdma_read_ack_msg_t *) am_hdr;
     sreq = ack_msg->sreq_ptr;
+    vni = MPIDI_Request_get_vci(sreq);
 
     if (!MPIDI_OFI_ENABLE_MR_PROV_KEY) {
         uint64_t mr_key = fi_mr_key(MPIDI_OFI_AMREQUEST_HDR(sreq, lmt_mr));

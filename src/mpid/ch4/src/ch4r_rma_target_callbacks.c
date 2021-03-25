@@ -951,6 +951,7 @@ static int cswap_target_cmpl_cb(MPIR_Request * rreq)
     void *origin_addr;
     MPI_Aint data_sz;
     MPIR_Win *win ATTRIBUTE((unused)) = NULL;
+    int vci = MPIDI_Request_get_vci(rreq);
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_CSWAP_TARGET_CMPL_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_CSWAP_TARGET_CMPL_CB);
@@ -990,7 +991,7 @@ static int cswap_target_cmpl_cb(MPIR_Request * rreq)
     mpi_errno = ack_cswap(rreq);
     MPIR_ERR_CHECK(mpi_errno);
     MPID_Request_complete(rreq);
-    MPIDIG_progress_compl_list();
+    MPIDIG_progress_compl_list(vci);
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_CSWAP_TARGET_CMPL_CB);
     return mpi_errno;
@@ -1003,6 +1004,7 @@ static int cswap_target_cmpl_cb(MPIR_Request * rreq)
 static int acc_target_cmpl_cb(MPIR_Request * rreq)
 {
     int mpi_errno = MPI_SUCCESS;
+    int vci = MPIDI_Request_get_vci(rreq);
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_ACC_TARGET_CMPL_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_ACC_TARGET_CMPL_CB);
 
@@ -1012,7 +1014,7 @@ static int acc_target_cmpl_cb(MPIR_Request * rreq)
     mpi_errno = handle_acc_cmpl(rreq);
     MPIR_ERR_CHECK(mpi_errno);
 
-    MPIDIG_progress_compl_list();
+    MPIDIG_progress_compl_list(vci);
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_ACC_TARGET_CMPL_CB);
     return mpi_errno;
@@ -1023,6 +1025,7 @@ static int acc_target_cmpl_cb(MPIR_Request * rreq)
 static int get_acc_target_cmpl_cb(MPIR_Request * rreq)
 {
     int mpi_errno = MPI_SUCCESS;
+    int vci = MPIDI_Request_get_vci(rreq);
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_GET_ACC_TARGET_CMPL_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_GET_ACC_TARGET_CMPL_CB);
 
@@ -1032,7 +1035,7 @@ static int get_acc_target_cmpl_cb(MPIR_Request * rreq)
     mpi_errno = handle_get_acc_cmpl(rreq);
     MPIR_ERR_CHECK(mpi_errno);
 
-    MPIDIG_progress_compl_list();
+    MPIDIG_progress_compl_list(vci);
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_GET_ACC_TARGET_CMPL_CB);
     return mpi_errno;
@@ -1754,7 +1757,7 @@ int MPIDIG_cswap_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Ain
     MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
 
     MPIDIG_REQUEST(rreq, req->target_cmpl_cb) = cswap_target_cmpl_cb;
-    MPIDIG_REQUEST(rreq, req->seq_no) = MPL_atomic_fetch_add_uint64(&MPIDI_global.nxt_seq_no, 1);
+    MPIDIG_REQUEST(rreq, req->seq_no) = MPL_atomic_fetch_add_uint64(&MPIDI_global.queue[vci].nxt_seq_no, 1);
 #ifndef MPIDI_CH4_DIRECT_NETMOD
     MPIDI_REQUEST(rreq, is_local) = is_local;
 #endif
@@ -1826,7 +1829,7 @@ int MPIDIG_acc_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint 
     }
 
     MPIDIG_REQUEST(rreq, req->target_cmpl_cb) = acc_target_cmpl_cb;
-    MPIDIG_REQUEST(rreq, req->seq_no) = MPL_atomic_fetch_add_uint64(&MPIDI_global.nxt_seq_no, 1);
+    MPIDIG_REQUEST(rreq, req->seq_no) = MPL_atomic_fetch_add_uint64(&MPIDI_global.queue[vci].nxt_seq_no, 1);
 #ifndef MPIDI_CH4_DIRECT_NETMOD
     MPIDI_REQUEST(rreq, is_local) = is_local;
 #endif
@@ -1957,7 +1960,7 @@ int MPIDIG_acc_dt_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Ai
     MPIDIG_recv_init(1, msg_hdr->flattened_sz, flattened_dt, msg_hdr->flattened_sz, rreq);
 
     MPIDIG_REQUEST(rreq, req->target_cmpl_cb) = acc_dt_target_cmpl_cb;
-    MPIDIG_REQUEST(rreq, req->seq_no) = MPL_atomic_fetch_add_uint64(&MPIDI_global.nxt_seq_no, 1);
+    MPIDIG_REQUEST(rreq, req->seq_no) = MPL_atomic_fetch_add_uint64(&MPIDI_global.queue[vci].nxt_seq_no, 1);
 #ifndef MPIDI_CH4_DIRECT_NETMOD
     MPIDI_REQUEST(rreq, is_local) = is_local;
 #endif
