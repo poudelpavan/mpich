@@ -82,10 +82,10 @@ typedef struct MPIDIG_global_t {
     /* Control parameters for global progress of RMA target-side active messages.
      * TODO: performance loss need be studied since we add atomic operations
      * in RMA sync and callback routines.*/
-    MPL_atomic_int_t rma_am_flag;       /* Indicates whether any incoming RMA target-side active
+    MPL_atomic_int_t rma_am_flag[MPIDI_CH4_MAX_VCIS];       /* Indicates whether any incoming RMA target-side active
                                          * messages has been received.
                                          * Set inside each target callback.*/
-    MPIR_cc_t rma_am_poll_cntr;
+    MPIR_cc_t rma_am_poll_cntr[MPIDI_CH4_MAX_VCIS];
 } MPIDIG_global_t;
 extern MPIDIG_global_t MPIDIG_global;
 

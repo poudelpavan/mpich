@@ -1112,6 +1112,7 @@ int MPIDIG_put_ack_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_A
     MPIDIG_put_ack_msg_t *msg_hdr = (MPIDIG_put_ack_msg_t *) am_hdr;
     MPIR_Win *win;
     MPIR_Request *preq;
+    int vci = 0;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_PUT_ACK_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_PUT_ACK_TARGET_MSG_CB);
@@ -1129,7 +1130,8 @@ int MPIDIG_put_ack_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_A
     if (is_async)
         *req = NULL;
 
-    MPIDIG_rma_set_am_flag();
+    vci = MPIDI_Request_get_vci(preq);
+    MPIDIG_rma_set_am_flag(vci);
     MPIR_T_PVAR_TIMER_END(RMA, rma_targetcb_put_ack);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_PUT_ACK_TARGET_MSG_CB);
     return mpi_errno;
@@ -1142,6 +1144,7 @@ int MPIDIG_acc_ack_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_A
     MPIDIG_acc_ack_msg_t *msg_hdr = (MPIDIG_acc_ack_msg_t *) am_hdr;
     MPIR_Win *win;
     MPIR_Request *rreq;
+    int vci = 0;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_ACC_ACK_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_ACC_ACK_TARGET_MSG_CB);
@@ -1160,7 +1163,8 @@ int MPIDIG_acc_ack_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_A
     if (is_async)
         *req = NULL;
 
-    MPIDIG_rma_set_am_flag();
+    vci = MPIDI_Request_get_vci(rreq);
+    MPIDIG_rma_set_am_flag(vci);
     MPIR_T_PVAR_TIMER_END(RMA, rma_targetcb_acc_ack);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_ACC_ACK_TARGET_MSG_CB);
     return mpi_errno;
@@ -1173,6 +1177,7 @@ int MPIDIG_get_acc_ack_target_msg_cb(int handler_id, void *am_hdr, void *data, M
     MPIDIG_get_acc_ack_msg_t *msg_hdr = (MPIDIG_get_acc_ack_msg_t *) am_hdr;
     MPIR_Request *rreq;
     MPI_Aint result_data_sz;
+    int vci = 0;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_GET_ACC_ACK_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_GET_ACC_ACK_TARGET_MSG_CB);
@@ -1199,7 +1204,8 @@ int MPIDIG_get_acc_ack_target_msg_cb(int handler_id, void *am_hdr, void *data, M
         MPIDIG_REQUEST(rreq, req->target_cmpl_cb) (rreq);
     }
 
-    MPIDIG_rma_set_am_flag();
+    vci = MPIDI_Request_get_vci(rreq);
+    MPIDIG_rma_set_am_flag(vci);
     MPIR_T_PVAR_TIMER_END(RMA, rma_targetcb_get_acc_ack);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_GET_ACC_ACK_TARGET_MSG_CB);
     return mpi_errno;
@@ -1212,6 +1218,7 @@ int MPIDIG_cswap_ack_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI
     MPIDIG_cswap_ack_msg_t *msg_hdr = (MPIDIG_cswap_ack_msg_t *) am_hdr;
     MPIR_Request *rreq;
     MPI_Aint data_sz;
+    int vci = 0;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_CSWAP_ACK_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_CSWAP_ACK_TARGET_MSG_CB);
@@ -1232,7 +1239,8 @@ int MPIDIG_cswap_ack_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI
         MPIDIG_REQUEST(rreq, req->target_cmpl_cb) (rreq);
     }
 
-    MPIDIG_rma_set_am_flag();
+    vci = MPIDI_Request_get_vci(rreq);
+    MPIDIG_rma_set_am_flag(vci);
     MPIR_T_PVAR_TIMER_END(RMA, rma_targetcb_cas_ack);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_CSWAP_ACK_TARGET_MSG_CB);
     return mpi_errno;
@@ -1369,7 +1377,7 @@ int MPIDIG_put_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint 
     }
 
   fn_exit:
-    MPIDIG_rma_set_am_flag();
+    MPIDIG_rma_set_am_flag(vci);
     MPIR_T_PVAR_TIMER_END(RMA, rma_targetcb_put);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_PUT_TARGET_MSG_CB);
     return mpi_errno;
@@ -1431,7 +1439,7 @@ int MPIDIG_put_dt_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Ai
     }
 
   fn_exit:
-    MPIDIG_rma_set_am_flag();
+    MPIDIG_rma_set_am_flag(vci);
     MPIR_T_PVAR_TIMER_END(RMA, rma_targetcb_put_dt);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_PUT_DT_TARGET_MSG_CB);
     return mpi_errno;
@@ -1492,7 +1500,7 @@ int MPIDIG_put_dt_ack_target_msg_cb(int handler_id, void *am_hdr, void *data, MP
         *req = NULL;
 
   fn_exit:
-    MPIDIG_rma_set_am_flag();
+    MPIDIG_rma_set_am_flag(vci);
     MPIR_T_PVAR_TIMER_END(RMA, rma_targetcb_put_dt_ack);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_PUT_DT_ACK_TARGET_MSG_CB);
     return mpi_errno;
@@ -1555,7 +1563,7 @@ int MPIDIG_acc_dt_ack_target_msg_cb(int handler_id, void *am_hdr, void *data, MP
         *req = NULL;
 
   fn_exit:
-    MPIDIG_rma_set_am_flag();
+    MPIDIG_rma_set_am_flag(vci);
     MPIR_T_PVAR_TIMER_END(RMA, rma_targetcb_acc_dt_ack);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_ACC_DT_ACK_TARGET_MSG_CB);
     return mpi_errno;
@@ -1618,7 +1626,7 @@ int MPIDIG_get_acc_dt_ack_target_msg_cb(int handler_id, void *am_hdr, void *data
     if (is_async)
         *req = NULL;
 
-    MPIDIG_rma_set_am_flag();
+    MPIDIG_rma_set_am_flag(vci);
 
   fn_exit:
     MPIR_T_PVAR_TIMER_END(RMA, rma_targetcb_get_acc_dt_ack);
@@ -1634,12 +1642,14 @@ int MPIDIG_put_data_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *rreq;
     MPIDIG_put_dat_msg_t *msg_hdr = (MPIDIG_put_dat_msg_t *) am_hdr;
+    int vci = 0;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_PUT_DATA_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_PUT_DATA_TARGET_MSG_CB);
     MPIR_T_PVAR_TIMER_START(RMA, rma_targetcb_put_data);
 
     rreq = (MPIR_Request *) msg_hdr->preq_ptr;
+    vci = MPIDI_Request_get_vci(rreq);
 
     /* FIXME: MPIR_Typerep_unflatten should allocate the new object */
     MPIR_Datatype *dt = (MPIR_Datatype *) MPIR_Handle_obj_alloc(&MPIR_Datatype_mem);
@@ -1665,7 +1675,7 @@ int MPIDIG_put_data_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_
     }
 
   fn_exit:
-    MPIDIG_rma_set_am_flag();
+    MPIDIG_rma_set_am_flag(vci);
     MPIR_T_PVAR_TIMER_END(RMA, rma_targetcb_put_data);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_PUT_DATA_TARGET_MSG_CB);
     return mpi_errno;
@@ -1679,6 +1689,7 @@ int MPIDIG_acc_data_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *rreq;
     MPIDIG_acc_dat_msg_t *msg_hdr = (MPIDIG_acc_dat_msg_t *) am_hdr;
+    int vci = 0;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_ACC_DATA_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_ACC_DATA_TARGET_MSG_CB);
@@ -1686,6 +1697,7 @@ int MPIDIG_acc_data_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_
 
     rreq = (MPIR_Request *) msg_hdr->preq_ptr;
     handle_acc_data(in_data_sz, rreq);
+    vci = MPIDI_Request_get_vci(rreq);
 
     MPIDIG_REQUEST(rreq, req->target_cmpl_cb) = acc_target_cmpl_cb;
 
@@ -1696,7 +1708,7 @@ int MPIDIG_acc_data_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_
         MPIDIG_REQUEST(rreq, req->target_cmpl_cb) (rreq);
     }
 
-    MPIDIG_rma_set_am_flag();
+    MPIDIG_rma_set_am_flag(vci);
 
     MPIR_T_PVAR_TIMER_END(RMA, rma_targetcb_acc_data);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_ACC_DATA_TARGET_MSG_CB);
@@ -1709,6 +1721,7 @@ int MPIDIG_get_acc_data_target_msg_cb(int handler_id, void *am_hdr, void *data, 
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *rreq;
     MPIDIG_get_acc_dat_msg_t *msg_hdr = (MPIDIG_get_acc_dat_msg_t *) am_hdr;
+    int vci = 0;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_GET_ACC_DATA_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_GET_ACC_DATA_TARGET_MSG_CB);
@@ -1716,6 +1729,7 @@ int MPIDIG_get_acc_data_target_msg_cb(int handler_id, void *am_hdr, void *data, 
 
     rreq = (MPIR_Request *) msg_hdr->preq_ptr;
     handle_acc_data(in_data_sz, rreq);
+    vci = MPIDI_Request_get_vci(rreq);
 
     MPIDIG_REQUEST(rreq, req->target_cmpl_cb) = get_acc_target_cmpl_cb;
 
@@ -1726,7 +1740,7 @@ int MPIDIG_get_acc_data_target_msg_cb(int handler_id, void *am_hdr, void *data, 
         MPIDIG_REQUEST(rreq, req->target_cmpl_cb) (rreq);
     }
 
-    MPIDIG_rma_set_am_flag();
+    MPIDIG_rma_set_am_flag(vci);
     MPIR_T_PVAR_TIMER_END(RMA, rma_targetcb_get_acc_data);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_GET_ACC_DATA_TARGET_MSG_CB);
     return mpi_errno;
@@ -1792,7 +1806,7 @@ int MPIDIG_cswap_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Ain
     }
 
   fn_exit:
-    MPIDIG_rma_set_am_flag();
+    MPIDIG_rma_set_am_flag(vci);
     MPIR_T_PVAR_TIMER_END(RMA, rma_targetcb_cas);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_CSWAP_TARGET_MSG_CB);
     return mpi_errno;
@@ -1877,7 +1891,7 @@ int MPIDIG_acc_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint 
     }
 
   fn_exit:
-    MPIDIG_rma_set_am_flag();
+    MPIDIG_rma_set_am_flag(vci);
     MPIR_T_PVAR_TIMER_END(RMA, rma_targetcb_acc);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_ACC_TARGET_MSG_CB);
     return mpi_errno;
@@ -1890,6 +1904,7 @@ int MPIDIG_get_acc_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_A
                                  int is_local, int is_async, MPIR_Request ** req)
 {
     int mpi_errno = MPI_SUCCESS;
+    int vci = 0;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_GET_ACC_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_GET_ACC_TARGET_MSG_CB);
@@ -1908,8 +1923,9 @@ int MPIDIG_get_acc_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_A
         MPIDIG_recv_copy(data, rreq);
         MPIDIG_REQUEST(rreq, req->target_cmpl_cb) (rreq);
     }
+    vci = MPIDI_Request_get_vci(rreq);
 
-    MPIDIG_rma_set_am_flag();
+    MPIDIG_rma_set_am_flag(vci);
     MPIR_T_PVAR_TIMER_END(RMA, rma_targetcb_get_acc);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_GET_ACC_TARGET_MSG_CB);
     return mpi_errno;
@@ -1973,7 +1989,7 @@ int MPIDIG_acc_dt_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Ai
     }
 
   fn_exit:
-    MPIDIG_rma_set_am_flag();
+    MPIDIG_rma_set_am_flag(vci);
     MPIR_T_PVAR_TIMER_END(RMA, rma_targetcb_acc_dt);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_ACC_DT_TARGET_MSG_CB);
     return mpi_errno;
@@ -1985,6 +2001,7 @@ int MPIDIG_get_acc_dt_target_msg_cb(int handler_id, void *am_hdr, void *data, MP
                                     int is_local, int is_async, MPIR_Request ** req)
 {
     int mpi_errno = MPI_SUCCESS;
+    int vci = 0;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_GET_ACC_DT_TARGET_MSG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_GET_ACC_DT_TARGET_MSG_CB);
@@ -2004,8 +2021,9 @@ int MPIDIG_get_acc_dt_target_msg_cb(int handler_id, void *am_hdr, void *data, MP
         MPIDIG_recv_copy(data, rreq);
         MPIDIG_REQUEST(rreq, req->target_cmpl_cb) (rreq);
     }
+    vci = MPIDI_Request_get_vci(rreq);
 
-    MPIDIG_rma_set_am_flag();
+    MPIDIG_rma_set_am_flag(vci);
     MPIR_T_PVAR_TIMER_END(RMA, rma_targetcb_get_acc_dt);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_GET_ACC_DT_TARGET_MSG_CB);
     return mpi_errno;
@@ -2069,7 +2087,7 @@ int MPIDIG_get_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint 
     }
 
   fn_exit:
-    MPIDIG_rma_set_am_flag();
+    MPIDIG_rma_set_am_flag(vci);
     MPIR_T_PVAR_TIMER_END(RMA, rma_targetcb_get);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_GET_TARGET_MSG_CB);
     return mpi_errno;
@@ -2082,6 +2100,7 @@ int MPIDIG_get_ack_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_A
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *rreq;
+    int vci = 0;
 
     MPIDIG_get_ack_msg_t *msg_hdr = (MPIDIG_get_ack_msg_t *) am_hdr;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_GET_ACK_TARGET_MSG_CB);
@@ -2090,6 +2109,7 @@ int MPIDIG_get_ack_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_A
 
     rreq = (MPIR_Request *) msg_hdr->greq_ptr;
     MPIR_Assert(rreq->kind == MPIR_REQUEST_KIND__RMA);
+    vci = MPIDI_Request_get_vci(rreq);
 
     MPIDIG_REQUEST(rreq, req->target_cmpl_cb) = get_ack_target_cmpl_cb;
 #ifndef MPIDI_CH4_DIRECT_NETMOD
@@ -2108,7 +2128,7 @@ int MPIDIG_get_ack_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_A
         MPIDIG_REQUEST(rreq, req->target_cmpl_cb) (rreq);
     }
 
-    MPIDIG_rma_set_am_flag();
+    MPIDIG_rma_set_am_flag(vci);
     MPIR_T_PVAR_TIMER_END(RMA, rma_targetcb_get_ack);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_GET_ACK_TARGET_MSG_CB);
     return mpi_errno;

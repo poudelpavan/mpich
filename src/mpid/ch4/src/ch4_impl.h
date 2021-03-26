@@ -1195,17 +1195,17 @@ MPL_STATIC_INLINE_PREFIX MPI_Op MPIDIU_win_acc_get_op(int index)
 /* Determine whether need poll progress for RMA target-side active message.
  * The polling interval is set globally as we don't distinguish target-side
  * AM handling per-window.  */
-MPL_STATIC_INLINE_PREFIX bool MPIDIG_rma_need_poll_am(void)
+MPL_STATIC_INLINE_PREFIX bool MPIDIG_rma_need_poll_am(int vci)
 {
     bool poll_flag = false;
 
     if (MPIR_CVAR_CH4_RMA_ENABLE_DYNAMIC_AM_PROGRESS) {
         int interval;
-        MPIR_cc_incr(&MPIDIG_global.rma_am_poll_cntr, &interval);
+        MPIR_cc_incr(&MPIDIG_global.rma_am_poll_cntr[vci], &interval);
 
         /* Always poll if any RMA target-side AM has arrived because
          * we expect more incoming AM now. */
-        if (MPL_atomic_load_int(&MPIDIG_global.rma_am_flag)) {
+        if (MPL_atomic_load_int(&MPIDIG_global.rma_am_flag[vci])) {
             poll_flag = true;
         } else {
             /* Otherwise poll with low frequency to reduce latency */
@@ -1214,7 +1214,7 @@ MPL_STATIC_INLINE_PREFIX bool MPIDIG_rma_need_poll_am(void)
         }
     } else if (MPIR_CVAR_CH4_RMA_AM_PROGRESS_INTERVAL > 1) {
         int interval;
-        MPIR_cc_incr(&MPIDIG_global.rma_am_poll_cntr, &interval);
+        MPIR_cc_incr(&MPIDIG_global.rma_am_poll_cntr[vci], &interval);
 
         /* User explicitly controls the polling frequency */
         poll_flag = ((interval + 1) % MPIR_CVAR_CH4_RMA_AM_PROGRESS_INTERVAL == 0) ? true : false;
@@ -1230,9 +1230,9 @@ MPL_STATIC_INLINE_PREFIX bool MPIDIG_rma_need_poll_am(void)
 }
 
 /* Set flag to indicate a target-side AM has arrived. */
-MPL_STATIC_INLINE_PREFIX void MPIDIG_rma_set_am_flag(void)
+MPL_STATIC_INLINE_PREFIX void MPIDIG_rma_set_am_flag(int vci)
 {
-    MPL_atomic_store_int(&MPIDIG_global.rma_am_flag, 1);
+    MPL_atomic_store_int(&MPIDIG_global.rma_am_flag[vci], 1);
 }
 
 #endif /* CH4_IMPL_H_INCLUDED */
