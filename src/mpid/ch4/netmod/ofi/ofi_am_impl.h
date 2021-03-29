@@ -77,7 +77,6 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_am_clear_request(MPIR_Request * sreq)
     int vci = MPIDI_Request_get_vci(sreq);
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_AM_CLEAR_REQUEST);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_AM_CLEAR_REQUEST);
-    fprintf(stdout, "%ld, MPIDI_OFI_am_clear_request, vci=%d\n", pthread_self(), vci);
 
     req_hdr = MPIDI_OFI_AMREQUEST(sreq, req_hdr);
 
@@ -85,7 +84,6 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_am_clear_request(MPIR_Request * sreq)
         goto fn_exit;
 
     MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.am_list[vci].am_hdr_buf_pool, req_hdr);
-    fprintf(stdout, "%ld, exit from MPIDU_genq_private_pool_free_cell\n", pthread_self());
     MPIDI_OFI_AMREQUEST(sreq, req_hdr) = NULL;
 
   fn_exit:
@@ -101,7 +99,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_init_request(const void *am_hdr,
     MPIDI_OFI_am_request_header_t *req_hdr;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_AM_INIT_REQUEST);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_AM_INIT_REQUEST);
-    // fprintf(stdout, "%ld, MPIDI_OFI_am_init_request, vci=%d\n", pthread_self(), vci);
     MPIR_Assert(am_hdr_sz < (1ULL << MPIDI_OFI_AM_HDR_SZ_BITS));
 
     if (MPIDI_OFI_AMREQUEST(sreq, req_hdr) == NULL) {
@@ -449,7 +446,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_eager(int rank, MPIR_Comm * c
     }
 
   fn_exit:
-//   fprintf(stdout, "%ld, exit MPIDI_OFI_do_am_isend_eager\n", pthread_self());
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_DO_AM_ISEND_EAGER);
     return mpi_errno;
   fn_fail:
@@ -519,7 +515,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_inject(int rank,
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_DO_INJECT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_DO_INJECT);
-    // fprintf(stdout, "%ld, MPIDI_OFI_do_inject, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
 
     MPIR_Assert(handler_id < (1 << MPIDI_OFI_AM_HANDLER_ID_BITS));
     MPIR_Assert(am_hdr_sz < (1ULL << MPIDI_OFI_AM_HDR_SZ_BITS));

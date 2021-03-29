@@ -698,7 +698,6 @@ int MPIR_Wait_state(MPIR_Request * request_ptr, MPI_Status * status, MPID_Progre
 
         if (unlikely(MPIR_Request_is_anysrc_mismatched(request_ptr))) {
             mpi_errno = MPIR_Request_handle_proc_failed(request_ptr);
-            fprintf(stdout, "%ld, MPIR_Request_is_anysrc_mismatched, mpi_errno=%d\n",pthread_self(), mpi_errno);
             goto fn_fail;
         }
     }
@@ -706,7 +705,6 @@ int MPIR_Wait_state(MPIR_Request * request_ptr, MPI_Status * status, MPID_Progre
   fn_exit:
     return mpi_errno;
   fn_fail:
-    fprintf(stdout, "%ld, MPID_Progress_wait error, mpi_errno=%d\n",pthread_self(), mpi_errno);
     goto fn_exit;
 }
 

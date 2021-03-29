@@ -85,7 +85,6 @@ int MPIDI_IPCI_send_contig_lmt_rts_cb(MPIDI_SHMI_ctrl_hdr_t * ctrl_hdr)
                                                slmt_rts_hdr->data_sz, slmt_rts_hdr->sreq_ptr, rreq);
         MPIR_ERR_CHECK(mpi_errno);
     } else {
-        fprintf(stdout, "%ld, MPIDI_IPCI_send, vci=%d\n", pthread_self(), vci);
         /* Enqueue unexpected receive request */
         rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RECV, 2, vci);
         MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");

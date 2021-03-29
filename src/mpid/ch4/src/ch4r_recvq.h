@@ -23,7 +23,6 @@ int MPIDIG_recvq_init(void);
 MPL_STATIC_INLINE_PREFIX int MPIDIG_match_posted(int rank, int tag,
                                                  MPIR_Context_id_t context_id, MPIR_Request * req)
 {
-    // fprintf(stdout, "%ld, rank=%d, req->rank=%d, tag=%d, req->tag=%d, context=%d, req->context=%d\n", pthread_self(), rank, MPIDIG_REQUEST(req, rank), 
     // tag, MPIDIG_REQUEST(req, tag), context_id, MPIDIG_REQUEST(req, context_id));
     return (rank == MPIDIG_REQUEST(req, rank) || MPIDIG_REQUEST(req, rank) == MPI_ANY_SOURCE) &&
         (tag == MPIR_TAG_MASK_ERROR_BITS(MPIDIG_REQUEST(req, tag)) ||
@@ -42,26 +41,22 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_match_unexp(int rank, int tag,
 
 MPL_STATIC_INLINE_PREFIX void MPIDIG_enqueue_posted(MPIR_Request * req, MPIDIG_rreq_t ** list)
 {
-    fprintf(stdout,"thread %ld, before enqueue_posted, list = %p, *list = %p\n",pthread_self(),list,*list);
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_ENQUEUE_POSTED);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_ENQUEUE_POSTED);
     MPIDIG_REQUEST(req, req->rreq.request) = req;
     DL_APPEND(*list, &req->dev.ch4.am.req->rreq);
     MPIR_T_PVAR_LEVEL_INC(RECVQ, posted_recvq_length, 1);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_ENQUEUE_POSTED);
-    fprintf(stdout,"thread %ld, after enqueue_posted, list = %p, *list = %p\n",pthread_self(),list,*list);
 }
 
 MPL_STATIC_INLINE_PREFIX void MPIDIG_enqueue_unexp(MPIR_Request * req, MPIDIG_rreq_t ** list)
 {
-    fprintf(stdout,"thread %ld, before enqueue_unexp, list = %p, *list = %p\n",pthread_self(),list,*list);
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_ENQUEUE_UNEXP);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_ENQUEUE_UNEXP);
     MPIDIG_REQUEST(req, req->rreq.request) = req;
     DL_APPEND(*list, &req->dev.ch4.am.req->rreq);
     MPIR_T_PVAR_LEVEL_INC(RECVQ, unexpected_recvq_length, 1);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_ENQUEUE_UNEXP);
-    fprintf(stdout,"thread %ld, after enqueue_unexp, list = %p, *list = %p\n",pthread_self(),list,*list);
 }
 
 MPL_STATIC_INLINE_PREFIX void MPIDIG_delete_unexp(MPIR_Request * req, MPIDIG_rreq_t ** list)
@@ -107,8 +102,6 @@ MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDIG_dequeue_unexp(int rank, int tag,
     MPIR_Request *req = NULL;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_DEQUEUE_UNEXP);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_DEQUEUE_UNEXP);
-	if(tag == 0)
-        fprintf(stdout,"thread %ld, before dequeue_unexp, list = %p, *list = %p\n",pthread_self(),list,*list);
 
     MPIR_T_PVAR_TIMER_START(RECVQ, time_matching_unexpectedq);
     DL_FOREACH_SAFE(*list, curr, tmp) {
@@ -119,19 +112,10 @@ MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDIG_dequeue_unexp(int rank, int tag,
             MPIR_T_PVAR_LEVEL_DEC(RECVQ, unexpected_recvq_length, 1);
             break;
         }
-        else{
-            if(curr->request){
-                fprintf(stdout, "%ld, context_id=%d, req->context_id=%d, rank=%d, req->rank=%d, tag = %d, req->tagmask=%d, req->tag=%d\n",pthread_self(), context_id, MPIDIG_REQUEST(curr->request, context_id), rank, 
-                MPIDIG_REQUEST(curr->request, rank), tag, MPIR_TAG_MASK_ERROR_BITS(MPIDIG_REQUEST(curr->request, tag)),MPIDIG_REQUEST(curr->request, tag));
-            }
-            fprintf(stdout, "%ld, !MPIDIG_match_unexp\n", pthread_self());
-        }
         req = NULL;
     }
     MPIR_T_PVAR_TIMER_END(RECVQ, time_matching_unexpectedq);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_DEQUEUE_UNEXP);
-    if(tag == 0)
-        fprintf(stdout,"thread %ld, after dequeue_unexp, list = %p, *list = %p, req=%d\n",pthread_self(),list,*list, (req==NULL));
     return req;
 }
 
@@ -166,16 +150,13 @@ MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDIG_dequeue_posted(int rank, int tag,
     MPIDIG_rreq_t *curr, *tmp;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_DEQUEUE_POSTED);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_DEQUEUE_POSTED);
-	if(tag == 0)
-        fprintf(stdout,"thread %ld, before dequeue_posted, list = %p, *list = %p\n",pthread_self(),list,*list);
-	
+
     MPIR_T_PVAR_TIMER_START(RECVQ, time_failed_matching_postedq);
     DL_FOREACH_SAFE(*list, curr, tmp) {
         MPIR_T_PVAR_COUNTER_INC(RECVQ, posted_recvq_match_attempts, 1);
 #ifndef MPIDI_CH4_DIRECT_NETMOD
         /* NOTE: extra negation to force logical comparisons */
         if (!MPIDI_REQUEST(curr->request, is_local) != !is_local) {
-            fprintf(stdout, "%ld, extra negation to force logical comparisons\n", pthread_self());
             continue;
         }
 #endif
@@ -185,20 +166,11 @@ MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDIG_dequeue_posted(int rank, int tag,
             MPIR_T_PVAR_LEVEL_DEC(RECVQ, posted_recvq_length, 1);
             break;
         }
-        else{
-            if(curr->request){
-                fprintf(stdout, "%ld, context_id=%d, req->context_id=%d, rank=%d, req->rank=%d, tag = %d, req->tagmask=%d, req->tag=%d\n",pthread_self(), context_id, MPIDIG_REQUEST(curr->request, context_id), rank, 
-                MPIDIG_REQUEST(curr->request, rank), tag, MPIR_TAG_MASK_ERROR_BITS(MPIDIG_REQUEST(curr->request, tag)),MPIDIG_REQUEST(curr->request, tag));
-            }
-            fprintf(stdout, "%ld, !MPIDIG_match_posted\n", pthread_self());
-        }
     }
     if (!req)
         MPIR_T_PVAR_TIMER_END(RECVQ, time_failed_matching_postedq);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_DEQUEUE_POSTED);
-    if(tag == 0)
-        fprintf(stdout,"thread %ld, after dequeue_posted, list = %p, *list = %p, req=%d\n",pthread_self(),list,*list, (req==NULL));
     return req;
 }
 

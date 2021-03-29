@@ -39,7 +39,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPCI_send_contig_lmt(const void *buf, MPI_Ain
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_IPCI_SEND_CONTIG_LMT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_IPCI_SEND_CONTIG_LMT);
     vci = comm->seq % MPIDI_CH4_MAX_VCIS;
-    fprintf(stdout, "%ld, ipc_p2p, vci=%d\n", pthread_self(), vci);
     /* Create send request */
     MPIR_Datatype_add_ref_if_not_builtin(datatype);
     sreq = MPIDIG_request_create(MPIR_REQUEST_KIND__SEND, 2,  vci);

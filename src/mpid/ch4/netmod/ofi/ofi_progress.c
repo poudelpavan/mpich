@@ -71,20 +71,16 @@ int MPIDI_OFI_progress(int vci, int blocking)
     }
 
     if (unlikely(MPIDI_OFI_get_buffered(wc, 1))){
-        fprintf(stdout, "%ld, MPIDI_OFI_handle_cq_entries, get_buffered, vni=%d\n", pthread_self(), vni);
         mpi_errno = MPIDI_OFI_handle_cq_entries(wc, 1, vni);
     }
     else if (likely(1)) {
         ret = fi_cq_read(MPIDI_OFI_global.ctx[vni].cq, (void *) wc, MPIDI_OFI_NUM_CQ_ENTRIES);
-        // fprintf(stdout, "%ld, MPIDI_OFI_progress, vni=%d, ret=%d\n", pthread_self(), vni, ret);
         if (likely(ret > 0)){
-            //fprintf(stdout, "%ld, ctx[%d].cq=%ld\n", pthread_self(), vni, MPIDI_OFI_global.ctx[vni].cq->fid.fclass);
             mpi_errno = MPIDI_OFI_handle_cq_entries(wc, ret, vni);
         }
         else if (ret == -FI_EAGAIN)
             mpi_errno = MPI_SUCCESS;
         else{
-            fprintf(stdout, "%ld, ret=%ld, ctx[%d].cq=%p, cq->fid.fclass=%ld\n", pthread_self(),ret, vni, &MPIDI_OFI_global.ctx[vni].cq, MPIDI_OFI_global.ctx[vni].cq->fid.fclass);
             mpi_errno = MPIDI_OFI_handle_cq_error(vni, ret);
         }
     }

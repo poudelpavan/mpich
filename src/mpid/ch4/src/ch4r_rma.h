@@ -41,7 +41,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_do_put(const void *origin_addr, int origin_c
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_DO_PUT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_DO_PUT);
-    fprintf(stdout, "%ld, MPIDIG_do_put, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
 
 #ifndef MPIDI_CH4_DIRECT_NETMOD
     is_local = MPIDI_rank_is_local(target_rank, win->comm_ptr);
@@ -202,7 +201,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_do_get(void *origin_addr, int origin_count,
 #ifndef MPIDI_CH4_DIRECT_NETMOD
     int is_local;
 #endif
-    fprintf(stdout, "%ld, MPIDIG_do_get, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_DO_GET);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_DO_GET);
 
@@ -342,7 +340,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_do_accumulate(const void *origin_addr, int o
 #ifndef MPIDI_CH4_DIRECT_NETMOD
     int is_local;
 #endif
-    fprintf(stdout, "%ld, MPIDIG_do_accumulate, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_DO_ACCUMULATE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_DO_ACCUMULATE);
 
@@ -517,7 +514,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_do_get_accumulate(const void *origin_addr,
 #ifndef MPIDI_CH4_DIRECT_NETMOD
     int is_local;
 #endif
-    fprintf(stdout, "%ld, MPIDIG_do_get_accumulate, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_DO_GET_ACCUMULATE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_DO_GET_ACCUMULATE);
 
@@ -881,7 +877,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_compare_and_swap(const void *origin_addr
     MPIDIG_cswap_req_msg_t am_hdr;
     size_t data_sz;
     void *p_data;
-    fprintf(stdout, "%ld, MPIDIG_mpi_compare_and_swap, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_MPI_COMPARE_AND_SWAP);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_MPI_COMPARE_AND_SWAP);

@@ -124,7 +124,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isendv(int rank,
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_AM_ISENDV);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_AM_ISENDV);
-    fprintf(stdout, "%ld, MPIDI_NM_am_isendv, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
     for (i = 0; i < iov_len; i++) {
         am_hdr_sz += am_hdr[i].iov_len;
     }
@@ -173,7 +172,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isend_reply(MPIR_Context_id_t context_i
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_AM_ISEND_REPLY);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_AM_ISEND_REPLY);
-    fprintf(stdout, "%ld, MPIDI_NM_am_isend_reply, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
 
     mpi_errno = MPIDI_NM_am_isend(src_rank, MPIDIG_context_id_to_comm(context_id), handler_id,
                                   am_hdr, am_hdr_sz, data, count, datatype, vni_src, vni_dst, sreq);

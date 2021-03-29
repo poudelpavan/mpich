@@ -82,7 +82,6 @@ MPL_STATIC_INLINE_PREFIX int MPID_Request_complete(MPIR_Request * req)
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_REQUEST_COMPLETE);
 
     MPIR_cc_decr(req->cc_ptr, &incomplete);
-    fprintf(stdout, "%ld, MPID_Request_complete, MPIDI_Request_get_vci\n", pthread_self());
     vci = MPIDI_Request_get_vci(req);
     /* if we hit a zero completion count, free up AM-related
      * objects */
