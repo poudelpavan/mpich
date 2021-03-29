@@ -291,6 +291,27 @@ typedef struct MPIDI_OFI_conn_manager_t {
                                          * outstanding dynamic process connections. */
 } MPIDI_OFI_conn_manager_t;
 
+/* AM related variables */
+typedef struct {
+    /* Active Message Globals */
+    struct iovec am_iov[MPIDI_OFI_MAX_NUM_AM_BUFFERS];
+    struct fi_msg am_msg[MPIDI_OFI_MAX_NUM_AM_BUFFERS];
+    void *am_bufs[MPIDI_OFI_MAX_NUM_AM_BUFFERS];
+    MPIDI_OFI_am_repost_request_t am_reqs[MPIDI_OFI_MAX_NUM_AM_BUFFERS];
+    MPIDU_genq_private_pool_t am_hdr_buf_pool;
+    MPL_atomic_int_t am_inflight_inject_emus;
+    MPL_atomic_int_t am_inflight_rma_send_mrs;
+    
+    /* Sequence number trackers for active messages */
+    void *am_send_seq_tracker;
+    void *am_recv_seq_tracker;
+
+    /* Queue (utlist) to store early-arrival active messages */
+    MPIDI_OFI_am_unordered_msg_t *am_unordered_msgs;
+
+     MPIDI_OFI_deferred_am_isend_req_t *deferred_am_isend_q;
+}OFI_AM_global_t;
+
 /* Global state data */
 #define MPIDI_KVSAPPSTRLEN 1024
 typedef struct {
@@ -335,19 +356,8 @@ typedef struct {
     MPIDI_OFI_atomic_valid_t win_op_table[MPIR_DATATYPE_N_PREDEFINED][MPIDIG_ACCU_NUM_OP];
     UT_array *rma_sep_idx_array;        /* Array of available indexes of transmit contexts on sep */
 
-    /* Active Message Globals */
-    struct iovec am_iov[MPIDI_OFI_MAX_NUM_AM_BUFFERS];
-    struct fi_msg am_msg[MPIDI_OFI_MAX_NUM_AM_BUFFERS];
-    void *am_bufs[MPIDI_OFI_MAX_NUM_AM_BUFFERS];
-    MPIDI_OFI_am_repost_request_t am_reqs[MPIDI_OFI_MAX_NUM_AM_BUFFERS];
-    MPIDU_genq_private_pool_t am_hdr_buf_pool;
-    MPL_atomic_int_t am_inflight_inject_emus;
-    MPL_atomic_int_t am_inflight_rma_send_mrs;
-    /* Sequence number trackers for active messages */
-    void *am_send_seq_tracker;
-    void *am_recv_seq_tracker;
-    /* Queue (utlist) to store early-arrival active messages */
-    MPIDI_OFI_am_unordered_msg_t *am_unordered_msgs;
+    /* AM variables */
+    OFI_AM_global_t am_list[MPIDI_CH4_MAX_VCIS];
 
     /* Pack buffers for various communication */
     MPIDU_genq_private_pool_t pack_buf_pool;
@@ -370,7 +380,6 @@ typedef struct {
     MPIDI_OFI_conn_manager_t conn_mgr;
 
     void *req_map;
-    MPIDI_OFI_deferred_am_isend_req_t *deferred_am_isend_q;
 
     /* Capability settings */
 #ifdef MPIDI_OFI_ENABLE_RUNTIME_CHECKS

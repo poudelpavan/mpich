@@ -194,13 +194,14 @@ int MPIDI_OFI_control_handler(int handler_id, void *am_hdr, void *data, MPI_Aint
 {
     int mpi_errno = MPI_SUCCESS;
     MPIDI_OFI_send_control_t *ctrlsend = (MPIDI_OFI_send_control_t *) am_hdr;
+    int vni = ctrlsend->vni_src;
 
     if (is_async)
         *req = NULL;
 
     switch (ctrlsend->type) {
         case MPIDI_OFI_CTRL_HUGEACK:{
-                mpi_errno = MPIDI_OFI_dispatch_function(NULL, ctrlsend->ackreq);
+                mpi_errno = MPIDI_OFI_dispatch_function(NULL, ctrlsend->ackreq, vni);
                 goto fn_exit;
             }
             break;

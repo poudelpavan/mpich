@@ -9,35 +9,35 @@
 #include "ofi_am_impl.h"
 #include "mpidu_genq.h"
 
-MPL_STATIC_INLINE_PREFIX uint16_t MPIDI_OFI_am_get_next_recv_seqno(fi_addr_t addr)
+MPL_STATIC_INLINE_PREFIX uint16_t MPIDI_OFI_am_get_next_recv_seqno(fi_addr_t addr, int vni)
 {
     uint64_t id = addr;
     void *r;
 
-    r = MPIDIU_map_lookup(MPIDI_OFI_global.am_recv_seq_tracker, id);
+    r = MPIDIU_map_lookup(MPIDI_OFI_global.am_list[vni].am_recv_seq_tracker, id);
     if (r == MPIDIU_MAP_NOT_FOUND) {
         MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
                         (MPL_DBG_FDEST, "First time adding recv seqno addr=%" PRIx64 "\n", addr));
-        MPIDIU_map_set(MPIDI_OFI_global.am_recv_seq_tracker, id, 0, MPL_MEM_OTHER);
+        MPIDIU_map_set(MPIDI_OFI_global.am_list[vni].am_recv_seq_tracker, id, 0, MPL_MEM_OTHER);
         return 0;
     } else {
         return (uint16_t) (uintptr_t) r;
     }
 }
 
-MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_am_set_next_recv_seqno(fi_addr_t addr, uint16_t seqno)
+MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_am_set_next_recv_seqno(fi_addr_t addr, uint16_t seqno, int vni)
 {
     uint64_t id = addr;
 
     MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
                     (MPL_DBG_FDEST, "Next recv seqno=%d addr=%" PRIx64 "\n", seqno, addr));
 
-    MPIDIU_map_update(MPIDI_OFI_global.am_recv_seq_tracker, id, (void *) (uintptr_t) seqno,
+    MPIDIU_map_update(MPIDI_OFI_global.am_list[vni].am_recv_seq_tracker, id, (void *) (uintptr_t) seqno,
                       MPL_MEM_OTHER);
 }
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_enqueue_unordered_msg(const MPIDI_OFI_am_header_t *
-                                                                am_hdr)
+                                                                am_hdr, int vni)
 {
     MPIDI_OFI_am_unordered_msg_t *uo_msg;
     size_t uo_msg_len, packet_len;
@@ -55,7 +55,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_enqueue_unordered_msg(const MPIDI_OFI_
     packet_len = sizeof(*am_hdr) + am_hdr->am_hdr_sz + am_hdr->payload_sz;
     MPIR_Memcpy(&uo_msg->am_hdr, am_hdr, packet_len);
 
-    DL_APPEND(MPIDI_OFI_global.am_unordered_msgs, uo_msg);
+    DL_APPEND(MPIDI_OFI_global.am_list[vni].am_unordered_msgs, uo_msg);
 
     return MPI_SUCCESS;
 }
@@ -63,7 +63,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_enqueue_unordered_msg(const MPIDI_OFI_
 /* Find and dequeue a message that matches (comm, src_rank, seqno), then return it.
  * Caller must free the returned pointer. */
 MPL_STATIC_INLINE_PREFIX MPIDI_OFI_am_unordered_msg_t
-    * MPIDI_OFI_am_claim_unordered_msg(fi_addr_t addr, uint16_t seqno)
+    * MPIDI_OFI_am_claim_unordered_msg(fi_addr_t addr, uint16_t seqno, int vni)
 {
     MPIDI_OFI_am_unordered_msg_t *uo_msg;
 
@@ -72,13 +72,13 @@ MPL_STATIC_INLINE_PREFIX MPIDI_OFI_am_unordered_msg_t
      * in the queue is extremely small.
      * If it's not the case, we should consider using better data structure and algorithm
      * to look up. */
-    DL_FOREACH(MPIDI_OFI_global.am_unordered_msgs, uo_msg) {
+    DL_FOREACH(MPIDI_OFI_global.am_list[vni].am_unordered_msgs, uo_msg) {
         if (uo_msg->am_hdr.fi_src_addr == addr && uo_msg->am_hdr.seqno == seqno) {
             MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, TERSE,
                             (MPL_DBG_FDEST,
                              "Found unordered message in the queue: addr=%" PRIx64 ", seqno=%d\n",
                              addr, seqno));
-            DL_DELETE(MPIDI_OFI_global.am_unordered_msgs, uo_msg);
+            DL_DELETE(MPIDI_OFI_global.am_list[vni].am_unordered_msgs, uo_msg);
             return uo_msg;
         }
     }
@@ -87,7 +87,7 @@ MPL_STATIC_INLINE_PREFIX MPIDI_OFI_am_unordered_msg_t
 }
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_short_am(MPIDI_OFI_am_header_t * msg_hdr,
-                                                       void *am_hdr, void *p_data)
+                                                       void *am_hdr, void *p_data, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -105,7 +105,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_short_am(MPIDI_OFI_am_header_t * m
 
 /* this is called in am_recv_event in ofi_event.c on receiver side */
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_pipeline(MPIDI_OFI_am_header_t * msg_hdr,
-                                                       void *am_hdr, void *p_data)
+                                                       void *am_hdr, void *p_data, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
     int is_done = 0;
@@ -143,7 +143,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_pipeline(MPIDI_OFI_am_header_t * m
 }
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_short_am_hdr(MPIDI_OFI_am_header_t * msg_hdr,
-                                                           void *am_hdr)
+                                                           void *am_hdr, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -164,6 +164,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_rdma_read(void *dst,
                                                     MPIR_Context_id_t context_id,
                                                     int src_rank, MPIR_Request * rreq)
 {
+    int vni_src = 0, vni_dst = 0;
     int mpi_errno = MPI_SUCCESS;
     size_t done = 0, curr_len, rem = 0;
     MPIDI_OFI_am_request_t *am_req;
@@ -175,15 +176,16 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_rdma_read(void *dst,
 
     while (done != data_sz) {
         curr_len = MPL_MIN(rem, MPIDI_OFI_global.max_msg_size);
-
+        comm = MPIDIG_context_id_to_comm(context_id);
+        vni_src = comm->seq % MPIDI_CH4_MAX_VCIS;
+        vni_dst = comm->seq % MPIDI_CH4_MAX_VCIS;
+        MPIR_Assert(comm);
         MPIR_Assert(sizeof(MPIDI_OFI_am_request_t) <= MPIDI_OFI_AM_HDR_POOL_CELL_SIZE);
-        MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.am_hdr_buf_pool, (void **) &am_req);
+        MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.am_list[vni_src].am_hdr_buf_pool, (void **) &am_req);
         MPIR_Assert(am_req);
 
         am_req->req_hdr = MPIDI_OFI_AMREQUEST(rreq, req_hdr);
         am_req->event_id = MPIDI_OFI_EVENT_AM_READ;
-        comm = MPIDIG_context_id_to_comm(context_id);
-        MPIR_Assert(comm);
         MPIDI_OFI_cntr_incr();
 
         struct iovec iov = {
@@ -199,14 +201,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_rdma_read(void *dst,
             .msg_iov = &iov,
             .desc = NULL,
             .iov_count = 1,
-            .addr = MPIDI_OFI_comm_to_phys(comm, src_rank, 0, 0),
+            .addr = MPIDI_OFI_comm_to_phys(comm, src_rank, vni_src, vni_dst),
             .rma_iov = &rma_iov,
             .rma_iov_count = 1,
             .context = &am_req->context,
             .data = 0
         };
 
-        MPIDI_OFI_CALL_RETRY_AM(fi_readmsg(MPIDI_OFI_global.ctx[0].tx, &msg, FI_COMPLETION), read);
+        MPIDI_OFI_CALL_RETRY_AM(fi_readmsg(MPIDI_OFI_global.ctx[vni_src].tx, &msg, FI_COMPLETION), read, vni_src);
 
         done += curr_len;
         rem -= curr_len;
@@ -223,7 +225,7 @@ MPL_STATIC_INLINE_PREFIX void do_long_am_recv(MPI_Aint in_data_sz, MPIR_Request 
                                               MPIDI_OFI_lmt_msg_payload_t * lmt_msg);
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_rdma_read(MPIDI_OFI_am_header_t * msg_hdr,
                                                         void *am_hdr,
-                                                        MPIDI_OFI_lmt_msg_payload_t * lmt_msg)
+                                                        MPIDI_OFI_lmt_msg_payload_t * lmt_msg, int vci)
 {
     int c, mpi_errno = MPI_SUCCESS;
     MPIR_Request *rreq = NULL;
@@ -239,8 +241,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_rdma_read(MPIDI_OFI_am_header_t * 
         goto fn_exit;
 
     MPIDI_OFI_am_clear_request(rreq);
-    mpi_errno = MPIDI_OFI_am_init_request(NULL, 0, rreq);
-
+    mpi_errno = MPIDI_OFI_am_init_request(NULL, 0, rreq, vci);
     MPIR_ERR_CHECK(mpi_errno);
 
     MPIR_cc_incr(rreq->cc_ptr, &c);

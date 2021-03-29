@@ -55,6 +55,24 @@ static void host_free(void *ptr)
     MPL_free(ptr);
 }
 
+static void init_num_vnis(void)
+{
+    int num_vnis = 1;
+    /* TODO: define MPIR_CVAR_CH4_SHM_POSIX_MAX_VNIS*/
+    /* if (MPIR_CVAR_CH4_SHM_POSIX_MAX_VNIS == 0 || MPIR_CVAR_CH4_SHM_POSIX_MAX_VNIS > MPIDI_global.n_vcis) {
+        num_vnis = MPIDI_global.n_vcis;
+    } else {
+        num_vnis = MPIR_CVAR_CH4_SHM_POSIX_MAX_VNIS;
+    } */
+
+    num_vnis = MPIDI_global.n_vcis;
+
+    /* for best performance, we ensure 1-to-1 vci/vni mapping. ref: MPIDI_POSIX_vci_to_vni */
+    /* TODO: allow less num_vnis. Option 1. runtime MOD; 2. overide MPIDI_global.n_vcis */
+    MPIR_Assert(num_vnis == MPIDI_global.n_vcis);
+
+    MPIDI_POSIX_global.num_vnis = num_vnis;
+}
 
 static int choose_posix_eager(void)
 {
@@ -131,6 +149,8 @@ int MPIDI_POSIX_mpi_init_hook(int rank, int size, int *tag_bits)
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_MPI_INIT_HOOK);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_MPI_INIT_HOOK);
+
+    init_num_vnis();
 
     MPL_COMPILE_TIME_ASSERT(sizeof(MPIDI_POSIX_am_request_header_t)
                             < MPIDI_POSIX_AM_HDR_POOL_CELL_SIZE);

@@ -24,6 +24,8 @@ struct am_comm_abort_hdr {
 
 int MPIDIG_am_comm_abort(MPIR_Comm * comm, int exit_code)
 {
+    int vni_src = comm->seq % MPIDI_CH4_MAX_VCIS;
+    int vni_dst = comm->seq % MPIDI_CH4_MAX_VCIS;
     int mpi_errno = MPI_SUCCESS;
     int dest;
     int size = 0;
@@ -46,12 +48,12 @@ int MPIDIG_am_comm_abort(MPIR_Comm * comm, int exit_code)
             continue;
 
         /* 2 references, 1 for MPID-layer and 1 for MPIR-layer */
-        sreq = MPIDIG_request_create(MPIR_REQUEST_KIND__SEND, 2);
+        sreq = MPIDIG_request_create(MPIR_REQUEST_KIND__SEND, 2, vni_src);
         MPIR_ERR_CHKANDSTMT((sreq) == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
 
         /* FIXME: only NM? */
         mpi_errno = MPIDI_NM_am_isend(dest, comm, MPIDIG_COMM_ABORT, &am_hdr,
-                                      sizeof(am_hdr), NULL, 0, MPI_INT, sreq);
+                                      sizeof(am_hdr), NULL, 0, MPI_INT, vni_src, vni_dst, sreq);
         if (mpi_errno)
             continue;
         else

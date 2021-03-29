@@ -380,7 +380,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_workq_vci_progress_unsafe(void)
 MPL_STATIC_INLINE_PREFIX int MPIDI_workq_vci_progress(void)
 {
     int mpi_errno = MPI_SUCCESS;
-
     MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(0).lock);
 
     mpi_errno = MPIDI_workq_vci_progress_unsafe();

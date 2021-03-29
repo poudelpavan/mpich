@@ -23,6 +23,7 @@ int MPIDIG_recvq_init(void);
 MPL_STATIC_INLINE_PREFIX int MPIDIG_match_posted(int rank, int tag,
                                                  MPIR_Context_id_t context_id, MPIR_Request * req)
 {
+    // tag, MPIDIG_REQUEST(req, tag), context_id, MPIDIG_REQUEST(req, context_id));
     return (rank == MPIDIG_REQUEST(req, rank) || MPIDIG_REQUEST(req, rank) == MPI_ANY_SOURCE) &&
         (tag == MPIR_TAG_MASK_ERROR_BITS(MPIDIG_REQUEST(req, tag)) ||
          MPIDIG_REQUEST(req, tag) == MPI_ANY_TAG) && context_id == MPIDIG_REQUEST(req, context_id);

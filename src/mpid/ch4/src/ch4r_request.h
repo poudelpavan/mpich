@@ -10,7 +10,7 @@
 #include "mpidu_genq.h"
 
 MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDIG_request_create(MPIR_Request_kind_t kind,
-                                                             int ref_count)
+                                                             int ref_count, int vni)
 {
     MPIR_Request *req;
     int i;
@@ -18,7 +18,7 @@ MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDIG_request_create(MPIR_Request_kind_t
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_REQUEST_CREATE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_REQUEST_CREATE);
 
-    req = MPIR_Request_create_from_pool(kind, 0);
+    req = MPIR_Request_create_from_pool(kind, vni);
     if (req == NULL)
         goto fn_fail;
 
@@ -40,7 +40,7 @@ MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDIG_request_create(MPIR_Request_kind_t
 #endif
 
     MPL_COMPILE_TIME_ASSERT(sizeof(MPIDIG_req_ext_t) <= MPIDIU_REQUEST_POOL_CELL_SIZE);
-    MPIDU_genq_private_pool_alloc_cell(MPIDI_global.request_pool,
+    MPIDU_genq_private_pool_alloc_cell(MPIDI_global.queue[vni].buffer_pool,
                                        (void **) &MPIDIG_REQUEST(req, req));
     MPIR_Assert(MPIDIG_REQUEST(req, req));
     MPIDIG_REQUEST(req, req->status) = 0;
@@ -56,7 +56,7 @@ MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDIG_request_create(MPIR_Request_kind_t
 }
 
 MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDIG_request_init(MPIR_Request * req,
-                                                           MPIR_Request_kind_t kind)
+                                                           MPIR_Request_kind_t kind, int vni)
 {
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_REQUEST_INIT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_REQUEST_INIT);
@@ -71,7 +71,7 @@ MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDIG_request_init(MPIR_Request * req,
 #endif
 
     MPL_COMPILE_TIME_ASSERT(sizeof(MPIDIG_req_ext_t) <= MPIDIU_REQUEST_POOL_CELL_SIZE);
-    MPIDU_genq_private_pool_alloc_cell(MPIDI_global.request_pool,
+    MPIDU_genq_private_pool_alloc_cell(MPIDI_global.queue[vni].buffer_pool,
                                        (void **) &MPIDIG_REQUEST(req, req));
     MPIR_Assert(MPIDIG_REQUEST(req, req));
     MPIDIG_REQUEST(req, req->status) = 0;

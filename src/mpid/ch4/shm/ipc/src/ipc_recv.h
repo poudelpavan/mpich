@@ -87,15 +87,15 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_mpi_irecv(void *buf, MPI_Aint count, MPI_
                                                  int rank, int tag, MPIR_Comm * comm,
                                                  int context_offset, MPIR_Request ** request)
 {
+    int vni = comm->seq;
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_IPC_MPI_IRECV);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_IPC_MPI_IRECV);
-    MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(0).lock);
+    MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vni).lock);
 
     MPIR_Comm *root_comm = NULL;
     MPIR_Request *unexp_req = NULL;
     MPIR_Context_id_t context_id = comm->recvcontext_id + context_offset;
-
     /* When matches with an unexpected receive, it first tries to receive as
      * an IPC optimized message (e.g., XPMEM SEND LMT). If fails, then receives
      * as CH4 am message. Note that we maintain IPC optimized message in the
@@ -116,15 +116,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_mpi_irecv(void *buf, MPI_Aint count, MPI_
         MPIR_Comm_release(root_comm);   /* -1 for removing from unexp_list */
 
         /* TODO: create unsafe version of imrecv to avoid extra locking */
-        MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(0).lock);
+        MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vni).lock);
         mpi_errno = MPIDI_IPC_mpi_imrecv(buf, count, datatype, *request);
-        MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(0).lock);
+        MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vni).lock);
         MPIR_ERR_CHECK(mpi_errno);
     } else {
         /* No matching request found, post the receive request  */
         MPIR_Request *rreq = NULL;
-
-        rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RECV, 2);
+        rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RECV, 2, vni);
         MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
 
         MPIR_Datatype_add_ref_if_not_builtin(datatype);
@@ -139,7 +138,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPC_mpi_irecv(void *buf, MPI_Aint count, MPI_
 
   fn_exit:
     MPIDI_REQUEST_SET_LOCAL(*request, 1, NULL);
-    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(0).lock);
+    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vni).lock);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_IPC_MPI_IRECV);
     return mpi_errno;
   fn_fail:

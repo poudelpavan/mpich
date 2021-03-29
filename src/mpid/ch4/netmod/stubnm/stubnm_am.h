@@ -14,7 +14,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isend(int rank,
                                                const void *am_hdr,
                                                size_t am_hdr_sz,
                                                const void *data,
-                                               MPI_Count count, MPI_Datatype datatype,
+                                               MPI_Count count, MPI_Datatype datatype, int vni_src, int vni_dst,
                                                MPIR_Request * sreq)
 {
     MPIR_Assert(0);

@@ -61,6 +61,8 @@ int MPIDI_OFI_nopack_putget(const void *origin_addr, int origin_count,
     struct fi_rma_iov riov;
     struct iovec iov;
     size_t target_bytes, origin_bytes;
+    int vni_src = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
+    int vni_dst = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
 
     MPIR_Datatype_get_size_macro(origin_datatype, origin_bytes);
     origin_bytes *= origin_count;
@@ -107,7 +109,7 @@ int MPIDI_OFI_nopack_putget(const void *origin_addr, int origin_count,
         } else
 #endif
         {
-            MPIDI_OFI_REQUEST_CREATE(*sigreq, MPIR_REQUEST_KIND__RMA, 0);
+            MPIDI_OFI_REQUEST_CREATE(*sigreq, MPIR_REQUEST_KIND__RMA, vni_src);
         }
         flags = FI_COMPLETION | FI_DELIVERY_COMPLETE;
     } else {
@@ -129,7 +131,7 @@ int MPIDI_OFI_nopack_putget(const void *origin_addr, int origin_count,
         msg_len = MPL_MIN(origin_iov[origin_cur].iov_len, target_iov[target_cur].iov_len);
 
         msg.desc = NULL;
-        msg.addr = MPIDI_OFI_av_to_phys(addr, 0, 0);
+        msg.addr = MPIDI_OFI_av_to_phys(addr, vni_src, vni_dst);
         msg.context = NULL;
         msg.data = 0;
         msg.msg_iov = &iov;
@@ -187,6 +189,8 @@ static int issue_packed_put(MPIR_Win * win, MPIDI_OFI_win_request_t * req)
     struct fi_rma_iov riov;
     uint64_t flags;
     void *pack_buffer;
+    int vni_src = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
+    int vni_dst = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
 
     if (sigreq)
         flags = FI_COMPLETION | FI_DELIVERY_COMPLETE;
@@ -223,7 +227,7 @@ static int issue_packed_put(MPIR_Win * win, MPIDI_OFI_win_request_t * req)
         MPIR_ERR_CHKANDSTMT(chunk == NULL, mpi_errno, MPI_ERR_NO_MEM, goto fn_fail, "**nomem");
 
         msg.desc = NULL;
-        msg.addr = MPIDI_OFI_av_to_phys(req->noncontig.put.target.addr, 0, 0);
+        msg.addr = MPIDI_OFI_av_to_phys(req->noncontig.put.target.addr, vni_src, vni_dst);
         msg.context = NULL;
         msg.data = 0;
         msg.msg_iov = &iov;
@@ -274,6 +278,8 @@ static int issue_packed_get(MPIR_Win * win, MPIDI_OFI_win_request_t * req)
     struct fi_rma_iov riov;
     uint64_t flags;
     void *pack_buffer;
+    int vni_src = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
+    int vni_dst = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
 
     if (sigreq)
         flags = FI_COMPLETION | FI_DELIVERY_COMPLETE;
@@ -305,7 +311,7 @@ static int issue_packed_get(MPIR_Win * win, MPIDI_OFI_win_request_t * req)
         MPIR_ERR_CHKANDSTMT(chunk == NULL, mpi_errno, MPI_ERR_NO_MEM, goto fn_fail, "**nomem");
 
         msg.desc = NULL;
-        msg.addr = MPIDI_OFI_av_to_phys(req->noncontig.get.target.addr, 0, 0);
+        msg.addr = MPIDI_OFI_av_to_phys(req->noncontig.get.target.addr, vni_src, vni_dst);
         msg.context = NULL;
         msg.data = 0;
         msg.msg_iov = &iov;

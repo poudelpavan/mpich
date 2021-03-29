@@ -231,6 +231,16 @@ typedef union MPIDI_vci {
 
 #define MPIDI_VCI(i) MPIDI_global.vci[i].vci
 
+typedef struct {
+    MPIDIG_rreq_t *posted_lst;
+    MPIDIG_rreq_t *unexp_lst;
+    MPIDU_genq_private_pool_t buffer_pool;
+    MPIDU_genq_private_pool_t unexp_pack_buf_pool;
+    MPIDIG_req_ext_t *cmpl_list;
+    MPL_atomic_uint64_t exp_seq_no;
+    MPL_atomic_uint64_t nxt_seq_no;
+}per_vci_queue;
+
 typedef struct MPIDI_CH4_Global_t {
     MPIR_Request *request_test;
     MPIR_Comm *comm_test;
@@ -250,11 +260,7 @@ typedef struct MPIDI_CH4_Global_t {
     MPIDIG_rreq_t *posted_list;
     MPIDIG_rreq_t *unexp_list;
 #endif
-    MPIDIG_req_ext_t *cmpl_list;
-    MPL_atomic_uint64_t exp_seq_no;
-    MPL_atomic_uint64_t nxt_seq_no;
-    MPIDU_genq_private_pool_t request_pool;
-    MPIDU_genq_private_pool_t unexp_pack_buf_pool;
+    
 #ifdef HAVE_SIGNAL
     void (*prev_sighandler) (int);
     volatile int sigusr1_count;
@@ -264,6 +270,10 @@ typedef struct MPIDI_CH4_Global_t {
     int n_vcis;
     MPIDI_vci_t vci[MPIDI_CH4_MAX_VCIS];
     int progress_counts[MPIDI_CH4_MAX_VCIS];
+    /* Allocate per-vci queue */
+    per_vci_queue queue[MPIDI_CH4_MAX_VCIS];
+    // MPIDIG_rreq_t *posted_lst[MPIDI_CH4_MAX_VCIS];
+    // MPIDIG_rreq_t *unexp_lst[MPIDI_CH4_MAX_VCIS];
 
 #if defined(MPIDI_CH4_USE_WORK_QUEUES)
     /* TODO: move into MPIDI_vci to have per-vci workqueue */
