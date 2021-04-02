@@ -310,6 +310,7 @@ typedef struct {
     MPIDI_OFI_am_unordered_msg_t *am_unordered_msgs;
 
      MPIDI_OFI_deferred_am_isend_req_t *deferred_am_isend_q;
+    int padding[4];
 }OFI_AM_global_t;
 
 /* Global state data */

@@ -130,20 +130,19 @@ int MPIDIG_am_init(void)
     MPIDI_global.posted_list = NULL;
     MPIDI_global.unexp_list = NULL;
 #endif
-
+    //fprintf(stdout, "%ld, size of queue=%ld\n", pthread_self(), sizeof(per_vci_queue));
     for(i = 0; i < MPIDI_CH4_MAX_VCIS; i++)
     {
         // MPIDI_global.posted_lst[i] = NULL;
         // MPIDI_global.unexp_lst[i] = NULL;
         MPIDI_global.queue[i].posted_lst = NULL;
         MPIDI_global.queue[i].unexp_lst = NULL;
-    }
-    MPIDI_global.cmpl_list = NULL;
-    MPL_atomic_store_uint64(&MPIDI_global.exp_seq_no, 0);
-    MPL_atomic_store_uint64(&MPIDI_global.nxt_seq_no, 0);
-
-    MPL_atomic_store_int(&MPIDIG_global.rma_am_flag, 0);
-    MPIR_cc_set(&MPIDIG_global.rma_am_poll_cntr, 0);
+        MPIDI_global.queue[i].cmpl_list = NULL;
+        MPL_atomic_store_uint64(&MPIDI_global.queue[i].exp_seq_no, 0);
+        MPL_atomic_store_uint64(&MPIDI_global.queue[i].nxt_seq_no, 0);
+        MPL_atomic_store_int(&MPIDIG_global.rma_am_flag[i], 0);
+        MPIR_cc_set(&MPIDIG_global.rma_am_poll_cntr[i], 0);
+    }    
 
     for(i = 0; i < MPIDI_CH4_MAX_VCIS; i++){
         mpi_errno =

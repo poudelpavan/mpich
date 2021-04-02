@@ -142,10 +142,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_do_irecv(void *buf, MPI_Aint count, MPI_Data
     //        fprintf(stdout, "%ld, irecv, vni_dst=%d, unexp_lst[%d]=%p\n", pthread_self(), vni_dst, i, MPIDI_global.queue[i].unexp_lst); 
     //    }
     //if(vni_src != 0)    
-        fprintf(stdout, "%ld, recv, before dequeue, unexp_lst[%d]=%p, alloc_req=%d\n", pthread_self(),vni_dst, MPIDI_global.queue[vni_dst].unexp_lst, alloc_req);
+    //    fprintf(stdout, "%ld, recv, before dequeue, unexp_lst[%d]=%p, alloc_req=%d\n", pthread_self(),vni_dst, MPIDI_global.queue[vni_dst].unexp_lst, alloc_req);
     unexp_req = MPIDIG_dequeue_unexp(rank, tag, context_id, &(MPIDI_global.queue[vni_dst].unexp_lst));
     //if(vni_src != 0)
-        fprintf(stdout, "%ld, dequeued, unexp_req=%d, unexp_lst[%d]=%p\n", pthread_self(), unexp_req==NULL, vni_dst, MPIDI_global.queue[vni_dst].unexp_lst);
+    //    fprintf(stdout, "%ld, dequeued, unexp_req=%d, unexp_lst[%d]=%p\n", pthread_self(), unexp_req==NULL, vni_dst, MPIDI_global.queue[vni_dst].unexp_lst);
 
     if (unexp_req) {
         //fprintf(stdout,"thread %ld, unexp_req, context_id = %d, unexp_list = %p\n", pthread_self(),context_id, MPIDI_global.queue[vni_dst].unexp_lst);
@@ -228,11 +228,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_do_irecv(void *buf, MPI_Aint count, MPI_Data
                 }
                 MPIDIG_REQUEST(unexp_req, req->status) &= ~MPIDIG_REQ_UNEXPECTED;
                 MPIDIG_REQUEST(unexp_req, req->seq_no) =
-                    MPL_atomic_fetch_add_uint64(&MPIDI_global.nxt_seq_no, 1);
+                    MPL_atomic_fetch_add_uint64(&MPIDI_global.queue[vni_src].nxt_seq_no, 1);
                 MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
                                 (MPL_DBG_FDEST, "seq_no: me=%" PRIu64 " exp=%" PRIu64,
                                  MPIDIG_REQUEST(unexp_req, req->seq_no),
-                                 MPL_atomic_load_uint64(&MPIDI_global.exp_seq_no)));
+                                 MPL_atomic_load_uint64(&MPIDI_global.queue[vni_src].exp_seq_no)));
                 MPIDIG_recv_type_init(data_sz, unexp_req);
                 MPIDIG_do_am_recv(unexp_req);
                 MPIR_ERR_CHECK(mpi_errno);
@@ -264,10 +264,10 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_do_irecv(void *buf, MPI_Aint count, MPI_Data
          * to make sure comm is alive while holding an entry in the posted_list */
         MPIR_Comm_add_ref(root_comm);
         //if(vni_src > 0)
-        fprintf(stdout, "%ld, recv, before enqueue, posted_lst[%d]=%p, rreq->handle=%x\n", pthread_self(),vni_dst, MPIDI_global.queue[vni_dst].posted_lst, rreq->handle);
+      //  fprintf(stdout, "%ld, recv, before enqueue, posted_lst[%d]=%p, rreq->handle=%x\n", pthread_self(),vni_dst, MPIDI_global.queue[vni_dst].posted_lst, rreq->handle);
         MPIDIG_enqueue_posted(rreq, &(MPIDI_global.queue[vni_dst].posted_lst));
         //if(vni_src > 0)
-            fprintf(stdout, "%ld, enqueued, &posted_lst[%d]=%p, posted_lst[%d]=%p\n", pthread_self(),vni_dst, &(MPIDI_global.queue[vni_dst].posted_lst), vni_dst, MPIDI_global.queue[vni_dst].posted_lst);
+        //    fprintf(stdout, "%ld, enqueued, &posted_lst[%d]=%p, posted_lst[%d]=%p\n", pthread_self(),vni_dst, &(MPIDI_global.queue[vni_dst].posted_lst), vni_dst, MPIDI_global.queue[vni_dst].posted_lst);
         /* MPIDI_CS_EXIT(); */
     } else {
         MPIDIG_REQUEST(unexp_req, req->rreq.match_req) = rreq;
@@ -328,11 +328,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_imrecv(void *buf,
             MPIDIG_REQUEST(message, recv_ready) = true;
             MPIDIG_REQUEST(message, req->status) &= ~MPIDIG_REQ_UNEXPECTED;
             MPIDIG_REQUEST(message, req->seq_no) =
-                MPL_atomic_fetch_add_uint64(&MPIDI_global.nxt_seq_no, 1);
+                MPL_atomic_fetch_add_uint64(&MPIDI_global.queue[vci].nxt_seq_no, 1);
             MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
                             (MPL_DBG_FDEST, "seq_no: me=%" PRIu64 " exp=%" PRIu64,
                              MPIDIG_REQUEST(message, req->seq_no),
-                             MPL_atomic_load_uint64(&MPIDI_global.exp_seq_no)));
+                             MPL_atomic_load_uint64(&MPIDI_global.queue[vci].exp_seq_no)));
             MPIDIG_recv_type_init(data_sz, message);
             MPIDIG_do_am_recv(message);
         }

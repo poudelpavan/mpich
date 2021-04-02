@@ -26,7 +26,6 @@ int MPIDIG_am_comm_abort(MPIR_Comm * comm, int exit_code)
 {
     int vni_src = comm->seq % MPIDI_CH4_MAX_VCIS;
     int vni_dst = comm->seq % MPIDI_CH4_MAX_VCIS;
-    fprintf(stdout, "%ld, MPIDIG_am_comm_abort, vni_src=%d, vni_dst=%d\n", pthread_self(), vni_src, vni_dst);
     int mpi_errno = MPI_SUCCESS;
     int dest;
     int size = 0;

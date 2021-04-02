@@ -18,7 +18,7 @@
 #define CACHELINE_SIZE 64
 
 #define MESSAGE_SIZE 8
-#define NUM_MESSAGES 6400
+#define NUM_MESSAGES 64000
 #define WINDOW_SIZE 64
 
 #define ERROR_MARGIN 0.05       /* FIXME: a better margin? */
@@ -61,15 +61,31 @@ MTEST_THREAD_RETURN_TYPE thread_fn(void *arg)
     t_start = MPI_Wtime();
 
     for (win_post_i = 0; win_post_i < win_posts; win_post_i++) {
+        // fprintf(stdout, "(SEND) %ld, comm=%x, tag=%d, send_start, win=%d\n", pthread_self(), my_comm, tid, win_post_i);
         for (win_i = 0; win_i < WINDOW_SIZE; win_i++) {
             if (rank == 0) {
+                // fprintf(stdout, "(SEND) %ld, comm=%x, tag=%d, send_start, win=%d, i=%d\n", pthread_self(), my_comm, tid, win_post_i, win_i);
                 MPI_Isend(buf, MESSAGE_SIZE, MPI_CHAR, 1, tid, my_comm, &requests[win_i]);
+                // fprintf(stdout, "(SEND) %ld, comm=%x, tag=%d, send_complete, win=%d, i=%d\n", pthread_self(), my_comm, tid, win_post_i, win_i);
             } else {
                 MPI_Irecv(buf, MESSAGE_SIZE, MPI_CHAR, 0, tid, my_comm, &requests[win_i]);
+                // fprintf(stdout, "(RECV) %ld, comm=%x, tag=%d, received, win=%d, i=%d\n", pthread_self(), my_comm, tid, win_post_i, win_i);
             }
         }
+        // fprintf(stdout, "(SEND) %ld, comm=%x, tag=%d, send_complete, win=%d, i=%d\n", pthread_self(), my_comm, tid, win_post_i, win_i);
         MPI_Waitall(WINDOW_SIZE, requests, statuses);
     }
+    // for (win_i = 0; win_i < NUM_MESSAGES; win_i++) {
+    //         if (rank == 0) {
+    //             fprintf(stdout, "(SEND) %ld, comm=%x, tag=%d, send_start, i=%d\n", pthread_self(), my_comm, tid, win_i);
+                
+    //             MPI_Send(buf, MESSAGE_SIZE, MPI_CHAR, 1, 0, my_comm);
+    //             fprintf(stdout, "(SEND) %ld, comm=%x, tag=%d, send_complete, i=%d\n", pthread_self(), my_comm, tid, win_i);
+    //         } else {
+    //             MPI_Recv(buf, MESSAGE_SIZE, MPI_CHAR, 0, 0, my_comm, MPI_STATUS_IGNORE);
+    //             fprintf(stdout, "(RECV) %ld, comm=%x, tag=%d, received, i=%d\n", pthread_self(), my_comm, tid, win_i);
+    //         }
+    // }
 
     /* Sync */
     if (rank == 0) {
@@ -96,10 +112,10 @@ int main(int argc, char *argv[])
     int errors;
     MPI_Info info;
 
-    if (argc > 2) {
-        fprintf(stderr, "Can support at most only the -nthreads argument.\n");
-        MPI_Abort(MPI_COMM_WORLD, 1);
-    }
+    // if (argc > 2) {
+    //     fprintf(stderr, "Can support at most only the -nthreads argument.\n");
+    //     MPI_Abort(MPI_COMM_WORLD, 1);
+    // }
 
     MTest_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 

@@ -580,6 +580,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_shared_query(MPIR_Win * win, int ran
 MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_flush(int rank, MPIR_Win * win)
 {
     int mpi_errno = MPI_SUCCESS;
+    int vci = 0;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_MPI_WIN_FLUSH);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_MPI_WIN_FLUSH);
 
@@ -605,7 +606,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_flush(int rank, MPIR_Win * win)
             MPIDIG_EPOCH_CHECK_TARGET_LOCK(target_ptr, mpi_errno, goto fn_fail);
     }
 
-    int poll_once = MPIDIG_rma_need_poll_am()? 1 : 0;
+    vci = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
+    int poll_once = MPIDIG_rma_need_poll_am(vci)? 1 : 0;
     MPIDIU_PROGRESS_WHILE((target_ptr && (MPIR_cc_get(target_ptr->remote_cmpl_cnts) != 0 ||
                                           MPIR_cc_get(target_ptr->remote_acc_cmpl_cnts) != 0)) ||
                           poll_once-- > 0);
@@ -620,6 +622,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_flush(int rank, MPIR_Win * win)
 MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_flush_local_all(MPIR_Win * win)
 {
     int mpi_errno = MPI_SUCCESS;
+    int vci = 0;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_MPI_WIN_FLUSH_LOCAL_ALL);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_MPI_WIN_FLUSH_LOCAL_ALL);
 
@@ -638,7 +641,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_flush_local_all(MPIR_Win * win)
 
     /* FIXME: now we simply set per-target counters for lockall in case
      * user flushes per target, but this should be optimized. */
-    int poll_once = MPIDIG_rma_need_poll_am()? 1 : 0;
+    vci = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
+    int poll_once = MPIDIG_rma_need_poll_am(vci)? 1 : 0;
 
     MPIDIU_PROGRESS_WHILE(!MPIDIG_win_check_all_targets_local_completed(win) || poll_once-- > 0);
 
@@ -719,6 +723,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_unlock_all(MPIR_Win * win)
 MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_flush_local(int rank, MPIR_Win * win)
 {
     int mpi_errno = MPI_SUCCESS;
+    int vci = 0;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_MPI_WIN_FLUSH_LOCAL);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_MPI_WIN_FLUSH_LOCAL);
 
@@ -743,8 +748,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_flush_local(int rank, MPIR_Win * win
         if (MPIDIG_WIN(win, sync).access_epoch_type == MPIDIG_EPOTYPE_LOCK)
             MPIDIG_EPOCH_CHECK_TARGET_LOCK(target_ptr, mpi_errno, goto fn_fail);
     }
+    vci = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
 
-    int poll_once = MPIDIG_rma_need_poll_am()? 1 : 0;
+    int poll_once = MPIDIG_rma_need_poll_am(vci)? 1 : 0;
     MPIDIU_PROGRESS_WHILE((target_ptr && MPIR_cc_get(target_ptr->local_cmpl_cnts) != 0) ||
                           poll_once-- > 0);
 
@@ -774,6 +780,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_sync(MPIR_Win * win)
 MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_flush_all(MPIR_Win * win)
 {
     int mpi_errno = MPI_SUCCESS;
+    int vci = 0;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_MPI_WIN_FLUSH_ALL);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_MPI_WIN_FLUSH_ALL);
 
@@ -788,11 +795,12 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_flush_all(MPIR_Win * win)
     MPIR_ERR_CHECK(mpi_errno);
 #endif
 
+    vci = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
     /* Ensure completion of AM operations */
 
     /* FIXME: now we simply set per-target counters for lockall in case
      * user flushes per target, but this should be optimized. */
-    int poll_once = MPIDIG_rma_need_poll_am()? 1 : 0;
+    int poll_once = MPIDIG_rma_need_poll_am(vci)? 1 : 0;
 
     MPIDIU_PROGRESS_WHILE(!MPIDIG_win_check_all_targets_remote_completed(win) || poll_once-- > 0);
 

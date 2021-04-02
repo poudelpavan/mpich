@@ -236,6 +236,10 @@ typedef struct {
     MPIDIG_rreq_t *unexp_lst;
     MPIDU_genq_private_pool_t buffer_pool;
     MPIDU_genq_private_pool_t unexp_pack_buf_pool;
+    MPIDIG_req_ext_t *cmpl_list;
+    MPL_atomic_uint64_t exp_seq_no;
+    MPL_atomic_uint64_t nxt_seq_no;
+    int pad[2];
 }per_vci_queue;
 
 typedef struct MPIDI_CH4_Global_t {
@@ -257,9 +261,6 @@ typedef struct MPIDI_CH4_Global_t {
     MPIDIG_rreq_t *posted_list;
     MPIDIG_rreq_t *unexp_list;
 #endif
-    MPIDIG_req_ext_t *cmpl_list;
-    MPL_atomic_uint64_t exp_seq_no;
-    MPL_atomic_uint64_t nxt_seq_no;
     
 #ifdef HAVE_SIGNAL
     void (*prev_sighandler) (int);

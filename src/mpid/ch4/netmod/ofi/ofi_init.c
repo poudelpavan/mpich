@@ -773,6 +773,7 @@ int MPIDI_OFI_mpi_init_hook(int rank, int size, int appnum, int *tag_bits, MPIR_
     /* Initialize Active Message          */
     /* ---------------------------------- */
     mpi_errno = init_am(0);
+    //fprintf(stdout, "%ld, am size = %ld\n", pthread_self(), sizeof(OFI_AM_global_t));
 
     /* ------------------------------------------------- */
     /* Initialize Connection Manager for Dynamic Tasking */
