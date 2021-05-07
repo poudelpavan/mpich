@@ -521,6 +521,7 @@ static int am_isend_event(struct fi_cq_tagged_entry *wc, MPIR_Request * sreq)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIDI_OFI_am_header_t *msg_hdr;
+    int vci = MPIDI_Request_get_vci(sreq);
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_AM_ISEND_EVENT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_AM_ISEND_EVENT);
@@ -531,9 +532,10 @@ static int am_isend_event(struct fi_cq_tagged_entry *wc, MPIR_Request * sreq)
     /* continue origin side completion if not RDMA_READ. REMA_READ will perform
      * origin side completion when ACK arrives */
     if (msg_hdr->am_type != MPIDI_AMTYPE_RDMA_READ) {
-        MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.pack_buf_pool,
+        MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.am_list[vci].pack_buf_pool,
                                           MPIDI_OFI_AMREQUEST_HDR(sreq, pack_buffer));
         MPIDI_OFI_AMREQUEST_HDR(sreq, pack_buffer) = NULL;
+    	// fprintf(stdout, "%ld, handler_id=%d\n", pthread_self(), msg_hdr->handler_id);
         mpi_errno = MPIDIG_global.origin_cbs[msg_hdr->handler_id] (sreq);
         MPIR_ERR_CHECK(mpi_errno);
     }
@@ -560,7 +562,7 @@ static int am_isend_pipeline_event(struct fi_cq_tagged_entry *wc, MPIR_Request *
     sreq = ofi_req->sreq;
     MPID_Request_complete(sreq);        /* FIXME: Should not call MPIDI in NM ? */
 
-    MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.pack_buf_pool, ofi_req->pack_buffer);
+    MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.am_list[vci].pack_buf_pool, ofi_req->pack_buffer);
 
     MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.am_list[vci].am_hdr_buf_pool, ofi_req);
 

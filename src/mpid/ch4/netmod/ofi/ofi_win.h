@@ -18,6 +18,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_win_do_progress(MPIR_Win * win)
     int ret;
     uint64_t tcount, donecount;
     MPIDI_OFI_win_request_t *r;
+    int vci = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_WIN_DO_PROGRESS);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_WIN_DO_PROGRESS);
@@ -61,7 +62,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_win_do_progress(MPIR_Win * win)
     while (r) {
         MPIDI_OFI_win_request_t *next = r->next;
         MPIR_Request **sigreq = r->sigreq;
-        MPIDI_OFI_win_request_complete(r);
+        MPIDI_OFI_win_request_complete(r, vci);
         MPIDI_OFI_sigreq_complete(sigreq);
         r = next;
     }

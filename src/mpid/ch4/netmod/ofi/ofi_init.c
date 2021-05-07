@@ -663,7 +663,7 @@ int init_am(int vni){
                                               MPIR_CVAR_CH4_OFI_MAX_NUM_PACK_BUFFERS,
                                               host_alloc_registered,
                                               host_free_registered,
-                                              &MPIDI_OFI_global.pack_buf_pool);
+                                              &MPIDI_OFI_global.am_list[vni].pack_buf_pool);
     MPIR_ERR_CHECK(mpi_errno);
 
     /* Initalize RMA keys allocator */
@@ -863,6 +863,7 @@ int MPIDI_OFI_mpi_finalize_hook(void)
             for (j = 0; j < MPIDI_OFI_NUM_AM_BUFFERS; j++)
                 MPL_gpu_free_host(MPIDI_OFI_global.am_list[i].am_bufs[j]);
             MPIDU_genq_private_pool_destroy_unsafe(MPIDI_OFI_global.am_list[i].am_hdr_buf_pool);
+            MPIDU_genq_private_pool_destroy_unsafe(MPIDI_OFI_global.am_list[i].pack_buf_pool);
         } 
 
         MPIR_Assert(MPIDI_OFI_global.cq_buffered_static_head ==
@@ -870,7 +871,7 @@ int MPIDI_OFI_mpi_finalize_hook(void)
         MPIR_Assert(NULL == MPIDI_OFI_global.cq_buffered_dynamic_head);
     }
 
-    MPIDU_genq_private_pool_destroy_unsafe(MPIDI_OFI_global.pack_buf_pool);
+    
 
     int err;
     MPID_Thread_mutex_destroy(&MPIDI_OFI_THREAD_UTIL_MUTEX, &err);

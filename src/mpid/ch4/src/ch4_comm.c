@@ -188,11 +188,11 @@ int MPID_Comm_commit_pre_hook(MPIR_Comm * comm)
 
 #ifdef HAVE_DEBUGGER_SUPPORT
 #ifndef MPIDI_CH4U_USE_PER_COMM_QUEUE
-    MPIDIG_COMM(comm, posted_head_ptr) = &(MPIDI_global.posted_list);
-    MPIDIG_COMM(comm, unexp_head_ptr) = &(MPIDI_global.unexp_list);
+    MPIDIG_COMM(comm, posted_head_ptr) = &(MPIDI_global.queue[vni_dst].posted_lst);//&(MPIDI_global.posted_list);
+    MPIDIG_COMM(comm, unexp_head_ptr) = &(MPIDI_global.queue[vni_dst].unexp_lst);//&(MPIDI_global.unexp_list);
 #else
-    MPIDIG_COMM(comm, posted_head_ptr) = &(MPIDIG_COMM(comm, posted_list));
-    MPIDIG_COMM(comm, unexp_head_ptr) = &(MPIDIG_COMM(comm, unexp_list));
+    MPIDIG_COMM(comm, posted_head_ptr) = &(MPIDI_global.queue[vni_dst].posted_lst);//&(MPIDIG_COMM(comm, posted_list));
+    MPIDIG_COMM(comm, unexp_head_ptr) = &(MPIDI_global.queue[vni_dst].unexp_lst);//&(MPIDIG_COMM(comm, unexp_list));
 #endif
 #endif
   fn_exit:

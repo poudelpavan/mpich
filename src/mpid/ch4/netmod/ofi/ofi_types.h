@@ -310,6 +310,8 @@ typedef struct {
     MPIDI_OFI_am_unordered_msg_t *am_unordered_msgs;
 
      MPIDI_OFI_deferred_am_isend_req_t *deferred_am_isend_q;
+    /* Pack buffers for various communication */
+    MPIDU_genq_private_pool_t pack_buf_pool;
     int padding[4];
 }OFI_AM_global_t;
 
@@ -359,9 +361,6 @@ typedef struct {
 
     /* AM variables */
     OFI_AM_global_t am_list[MPIDI_CH4_MAX_VCIS];
-
-    /* Pack buffers for various communication */
-    MPIDU_genq_private_pool_t pack_buf_pool;
 
     /* Completion queue buffering */
     MPIDI_OFI_cq_buff_entry_t cq_buffered_static_list[MPIDI_OFI_NUM_CQ_BUFFERED];

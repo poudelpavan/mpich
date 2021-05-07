@@ -289,7 +289,7 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_load_iov(const void *buffer, int count,
 }
 
 int MPIDI_OFI_issue_deferred_rma(MPIR_Win * win);
-void MPIDI_OFI_complete_chunks(MPIDI_OFI_win_request_t * winreq);
+void MPIDI_OFI_complete_chunks(MPIDI_OFI_win_request_t * winreq, int vci);
 int MPIDI_OFI_nopack_putget(const void *origin_addr, int origin_count,
                             MPI_Datatype origin_datatype, int target_rank,
                             int target_count, MPI_Datatype target_datatype,
@@ -339,9 +339,9 @@ MPL_STATIC_INLINE_PREFIX MPIDI_OFI_win_request_t *MPIDI_OFI_win_request_create(v
     return winreq;
 }
 
-MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_win_request_complete(MPIDI_OFI_win_request_t * winreq)
+MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_win_request_complete(MPIDI_OFI_win_request_t * winreq, int vci)
 {
-    MPIDI_OFI_complete_chunks(winreq);
+    MPIDI_OFI_complete_chunks(winreq, vci);
     if (winreq->rma_type == MPIDI_OFI_PUT &&
         winreq->noncontig.put.origin.datatype != MPI_DATATYPE_NULL &&
         winreq->noncontig.put.target.datatype != MPI_DATATYPE_NULL) {

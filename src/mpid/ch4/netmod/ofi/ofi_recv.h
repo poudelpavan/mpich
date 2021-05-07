@@ -279,7 +279,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_mpi_imrecv(void *buf,
         av = MPIDIU_comm_rank_to_av(rreq->comm, message->status.MPI_SOURCE);
         /* FIXME: need get vni_src in the request */
         mpi_errno = MPIDI_OFI_do_irecv(buf, count, datatype, message->status.MPI_SOURCE,
-                                       message->status.MPI_TAG, rreq->comm, 0, av, 0, vci,
+                                       message->status.MPI_TAG, rreq->comm, 0, av, vci, vci,
                                        &rreq, MPIDI_OFI_USE_EXISTING, FI_CLAIM | FI_COMPLETION);
         MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vci).lock);
     }
