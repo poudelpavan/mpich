@@ -628,7 +628,7 @@ int init_am(int vci){
 
         MPIDIU_map_create(&MPIDI_OFI_global.am_recv_seq_tracker, MPL_MEM_BUFFER);
         MPIDIU_map_create(&MPIDI_OFI_global.am_send_seq_tracker, MPL_MEM_BUFFER);
-        MPIDI_OFI_global.am_unordered_msgs = NULL;
+        MPIDI_OFI_global.am_list[vci].am_unordered_msgs = NULL;
 
         for (int i = 0; i < MPIDI_OFI_NUM_AM_BUFFERS; i++) {
             MPIR_gpu_malloc_host(&(MPIDI_OFI_global.am_list[vci].am_bufs[i]), MPIDI_OFI_AM_BUFF_SZ);
@@ -853,14 +853,15 @@ int MPIDI_OFI_mpi_finalize_hook(void)
     MPIDIU_map_destroy(MPIDI_OFI_global.req_map);
 
     if (MPIDI_OFI_ENABLE_AM) {
-        while (MPIDI_OFI_global.am_unordered_msgs) {
-            MPIDI_OFI_am_unordered_msg_t *uo_msg = MPIDI_OFI_global.am_unordered_msgs;
-            DL_DELETE(MPIDI_OFI_global.am_unordered_msgs, uo_msg);
-        }
+        
         MPIDIU_map_destroy(MPIDI_OFI_global.am_send_seq_tracker);
         MPIDIU_map_destroy(MPIDI_OFI_global.am_recv_seq_tracker);
 
         for(j = 0; j < MPIDI_OFI_global.num_vnis; j++){
+            while (MPIDI_OFI_global.am_list[j].am_unordered_msgs) {
+                MPIDI_OFI_am_unordered_msg_t *uo_msg = MPIDI_OFI_global.am_list[j].am_unordered_msgs;
+                DL_DELETE(MPIDI_OFI_global.am_list[j].am_unordered_msgs, uo_msg);
+            }
             for (i = 0; i < MPIDI_OFI_NUM_AM_BUFFERS; i++)
                 MPIR_gpu_free_host(MPIDI_OFI_global.am_list[j].am_bufs[i]);
         }

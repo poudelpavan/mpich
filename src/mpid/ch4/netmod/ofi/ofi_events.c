@@ -25,7 +25,7 @@ static int dynproc_done_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq
 static int am_isend_event(struct fi_cq_tagged_entry *wc, MPIR_Request * sreq);
 static int am_isend_rdma_event(struct fi_cq_tagged_entry *wc, MPIR_Request * sreq);
 static int am_isend_pipeline_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_me);
-static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq);
+static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int vci);
 static int am_read_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_me);
 static int am_repost_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int vci);
 
@@ -541,7 +541,7 @@ static int am_isend_pipeline_event(struct fi_cq_tagged_entry *wc, MPIR_Request *
     goto fn_exit;
 }
 
-static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq)
+static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIDI_OFI_am_header_t *am_hdr;
@@ -583,7 +583,7 @@ static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq)
                          "Expected seqno=%d but got %d (am_type=%d addr=%" PRIx64 "). "
                          "Enqueueing it to the queue.\n",
                          expected_seqno, am_hdr->seqno, am_hdr->am_type, am_hdr->fi_src_addr));
-        mpi_errno = MPIDI_OFI_am_enqueue_unordered_msg(orig_buf);
+        mpi_errno = MPIDI_OFI_am_enqueue_unordered_msg(orig_buf, vci);
         MPIR_ERR_CHECK(mpi_errno);
         goto fn_exit;
     }
@@ -648,7 +648,7 @@ static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq)
     MPL_free(uo_msg);
 
     /* See if we can process other messages in the queue */
-    if ((uo_msg = MPIDI_OFI_am_claim_unordered_msg(fi_src_addr, next_seqno)) != NULL) {
+    if ((uo_msg = MPIDI_OFI_am_claim_unordered_msg(fi_src_addr, next_seqno, vci)) != NULL) {
         am_hdr = &uo_msg->am_hdr;
         orig_buf = am_hdr;
 #if NEEDS_STRICT_ALIGNMENT
@@ -746,7 +746,7 @@ int MPIDI_OFI_dispatch_function(struct fi_cq_tagged_entry *wc, MPIR_Request * re
         goto fn_exit;
     } else if (likely(MPIDI_OFI_REQUEST(req, event_id) == MPIDI_OFI_EVENT_AM_RECV)) {
         if (wc->flags & FI_RECV)
-            mpi_errno = am_recv_event(wc, req);
+            mpi_errno = am_recv_event(wc, req, vci);
 
         if (unlikely(wc->flags & FI_MULTI_RECV))
             mpi_errno = am_repost_event(wc, req, vci);
