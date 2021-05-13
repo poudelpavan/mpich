@@ -635,9 +635,9 @@ int init_am(int vci){
             MPIDI_OFI_global.am_reqs[i].event_id = MPIDI_OFI_EVENT_AM_RECV;
             MPIDI_OFI_global.am_reqs[i].index = i;
             MPIR_Assert(MPIDI_OFI_global.am_bufs[i]);
-            MPIDI_OFI_global.am_iov[i].iov_base = MPIDI_OFI_global.am_bufs[i];
-            MPIDI_OFI_global.am_iov[i].iov_len = MPIDI_OFI_AM_BUFF_SZ;
-            MPIDI_OFI_global.am_msg[i].msg_iov = &MPIDI_OFI_global.am_iov[i];
+            MPIDI_OFI_global.am_list[vci].am_iov[i].iov_base = MPIDI_OFI_global.am_bufs[i];
+            MPIDI_OFI_global.am_list[vci].am_iov[i].iov_len = MPIDI_OFI_AM_BUFF_SZ;
+            MPIDI_OFI_global.am_msg[i].msg_iov = &MPIDI_OFI_global.am_list[vci].am_iov[i];
             MPIDI_OFI_global.am_msg[i].desc = NULL;
             MPIDI_OFI_global.am_msg[i].addr = FI_ADDR_UNSPEC;
             MPIDI_OFI_global.am_msg[i].context = &MPIDI_OFI_global.am_reqs[i].context;

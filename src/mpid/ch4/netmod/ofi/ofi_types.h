@@ -292,7 +292,8 @@ typedef struct {
 
 /* AM related variables */
 typedef struct {
-    
+    /* Active Message Globals */
+    struct iovec am_iov[MPIDI_OFI_MAX_NUM_AM_BUFFERS];
 }OFI_AM_global_t __attribute__ ((aligned));
 
 /* Global state data */
@@ -338,8 +339,9 @@ typedef struct {
      * OFI provider at MPI initialization.*/
     MPIDI_OFI_atomic_valid_t win_op_table[MPIR_DATATYPE_N_PREDEFINED][MPIDIG_ACCU_NUM_OP];
 
-    /* Active Message Globals */
-    struct iovec am_iov[MPIDI_OFI_MAX_NUM_AM_BUFFERS];
+    /* AM related variables */
+    OFI_AM_global_t am_list[MPIDI_CH4_MAX_VCIS];
+
     struct fi_msg am_msg[MPIDI_OFI_MAX_NUM_AM_BUFFERS];
     void *am_bufs[MPIDI_OFI_MAX_NUM_AM_BUFFERS];
     MPIDI_OFI_am_repost_request_t am_reqs[MPIDI_OFI_MAX_NUM_AM_BUFFERS];
