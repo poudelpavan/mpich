@@ -382,7 +382,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_eager(int rank, MPIR_Comm * c
                                                          int handler_id, const void *am_hdr,
                                                          size_t am_hdr_sz, const void *buf,
                                                          size_t count, MPI_Datatype datatype,
-                                                         MPIR_Request * sreq, bool issue_deferred)
+                                                         MPIR_Request * sreq, bool issue_deferred, int vni_src, int vni_dst)
 {
     int dt_contig, mpi_errno = MPI_SUCCESS;
     char *send_buf;
@@ -417,7 +417,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_eager(int rank, MPIR_Comm * c
         need_packing = MPIDI_OFI_AMREQUEST(sreq, deferred_req)->need_packing;
     }
 
-    if (!issue_deferred && MPIDI_OFI_global.deferred_am_isend_q) {
+    if (!issue_deferred && MPIDI_OFI_global.am_list[vni_src].deferred_am_isend_q) {
         /* if the deferred queue is not empty, all new ops must be deferred to maintain ordering */
         goto fn_deferred;
     }
@@ -454,7 +454,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_eager(int rank, MPIR_Comm * c
     mpi_errno = MPIDI_OFI_am_isend_short(rank, comm, handler_id, send_buf, data_sz, sreq);
     MPIR_ERR_CHECK(mpi_errno);
     if (issue_deferred) {
-        DL_DELETE(MPIDI_OFI_global.deferred_am_isend_q, MPIDI_OFI_AMREQUEST(sreq, deferred_req));
+        DL_DELETE(MPIDI_OFI_global.am_list[vni_src].deferred_am_isend_q, MPIDI_OFI_AMREQUEST(sreq, deferred_req));
         MPL_free(MPIDI_OFI_AMREQUEST(sreq, deferred_req));
     }
 
@@ -478,7 +478,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_eager(int rank, MPIR_Comm * c
     MPIDI_OFI_AMREQUEST(sreq, deferred_req)->sreq = sreq;
     MPIDI_OFI_AMREQUEST(sreq, deferred_req)->data_sz = data_sz;
     MPIDI_OFI_AMREQUEST(sreq, deferred_req)->need_packing = need_packing;
-    DL_APPEND(MPIDI_OFI_global.deferred_am_isend_q, MPIDI_OFI_AMREQUEST(sreq, deferred_req));
+    DL_APPEND(MPIDI_OFI_global.am_list[vni_src].deferred_am_isend_q, MPIDI_OFI_AMREQUEST(sreq, deferred_req));
     goto fn_exit;
 }
 
@@ -573,7 +573,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_pipeline(int rank, MPIR_Comm 
                                                             size_t am_hdr_sz, const void *buf,
                                                             size_t count, MPI_Datatype datatype,
                                                             MPIR_Request * sreq, MPI_Aint data_sz,
-                                                            bool issue_deferred)
+                                                            bool issue_deferred, int vni_src, int vni_dst)
 {
     int dt_contig, mpi_errno = MPI_SUCCESS;
     char *send_buf;
@@ -619,7 +619,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_pipeline(int rank, MPIR_Comm 
         need_packing = MPIDI_OFI_AMREQUEST(sreq, deferred_req)->need_packing;
     }
 
-    if (!issue_deferred && MPIDI_OFI_global.deferred_am_isend_q) {
+    if (!issue_deferred && MPIDI_OFI_global.am_list[vni_src].deferred_am_isend_q) {
         /* if the deferred queue is not empty, all new ops must be deferred to maintain ordering */
         goto fn_deferred;
     }
@@ -674,7 +674,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_pipeline(int rank, MPIR_Comm 
             goto fn_deferred;
         }
     } else if (issue_deferred) {
-        DL_DELETE(MPIDI_OFI_global.deferred_am_isend_q, MPIDI_OFI_AMREQUEST(sreq, deferred_req));
+        DL_DELETE(MPIDI_OFI_global.am_list[vni_src].deferred_am_isend_q, MPIDI_OFI_AMREQUEST(sreq, deferred_req));
         MPL_free(MPIDI_OFI_AMREQUEST(sreq, deferred_req));
     }
 
@@ -698,7 +698,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_pipeline(int rank, MPIR_Comm 
     MPIDI_OFI_AMREQUEST(sreq, deferred_req)->sreq = sreq;
     MPIDI_OFI_AMREQUEST(sreq, deferred_req)->data_sz = data_sz;
     MPIDI_OFI_AMREQUEST(sreq, deferred_req)->need_packing = need_packing;
-    DL_APPEND(MPIDI_OFI_global.deferred_am_isend_q, MPIDI_OFI_AMREQUEST(sreq, deferred_req));
+    DL_APPEND(MPIDI_OFI_global.am_list[vni_src].deferred_am_isend_q, MPIDI_OFI_AMREQUEST(sreq, deferred_req));
     goto fn_exit;
 }
 
@@ -707,15 +707,13 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_rdma_read(int rank, MPIR_Comm
                                                              size_t am_hdr_sz, const void *buf,
                                                              size_t count, MPI_Datatype datatype,
                                                              MPIR_Request * sreq,
-                                                             bool issue_deferred)
+                                                             bool issue_deferred, int vni_src, int vni_dst)
 {
     int dt_contig, mpi_errno = MPI_SUCCESS;
     char *send_buf;
     MPI_Aint data_sz;
     MPI_Aint dt_true_lb, last;
     bool need_packing = false;
-    int vni_src = comm->seq % MPIDI_CH4_MAX_VCIS;
-    int vni_dst = comm->seq % MPIDI_CH4_MAX_VCIS;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_DO_AM_ISEND_RDMA_READ);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_DO_AM_ISEND_RDMA_READ);
@@ -744,7 +742,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_rdma_read(int rank, MPIR_Comm
         need_packing = MPIDI_OFI_AMREQUEST(sreq, deferred_req)->need_packing;
     }
 
-    if (!issue_deferred && MPIDI_OFI_global.deferred_am_isend_q) {
+    if (!issue_deferred && MPIDI_OFI_global.am_list[vni_src].deferred_am_isend_q) {
         /* if the deferred queue is not empty, all new ops must be deferred to maintain ordering */
         goto fn_deferred;
     }
@@ -776,7 +774,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_rdma_read(int rank, MPIR_Comm
     mpi_errno = MPIDI_OFI_am_isend_long(rank, comm, handler_id, send_buf, data_sz, sreq, vni_src, vni_dst);
     MPIR_ERR_CHECK(mpi_errno);
     if (issue_deferred) {
-        DL_DELETE(MPIDI_OFI_global.deferred_am_isend_q, MPIDI_OFI_AMREQUEST(sreq, deferred_req));
+        DL_DELETE(MPIDI_OFI_global.am_list[vni_src].deferred_am_isend_q, MPIDI_OFI_AMREQUEST(sreq, deferred_req));
         MPL_free(MPIDI_OFI_AMREQUEST(sreq, deferred_req));
     }
 
@@ -800,7 +798,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_rdma_read(int rank, MPIR_Comm
     MPIDI_OFI_AMREQUEST(sreq, deferred_req)->sreq = sreq;
     MPIDI_OFI_AMREQUEST(sreq, deferred_req)->data_sz = data_sz;
     MPIDI_OFI_AMREQUEST(sreq, deferred_req)->need_packing = need_packing;
-    DL_APPEND(MPIDI_OFI_global.deferred_am_isend_q, MPIDI_OFI_AMREQUEST(sreq, deferred_req));
+    DL_APPEND(MPIDI_OFI_global.am_list[vni_src].deferred_am_isend_q, MPIDI_OFI_AMREQUEST(sreq, deferred_req));
     goto fn_exit;
 }
 

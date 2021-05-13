@@ -303,6 +303,8 @@ typedef struct {
 
     /* Queue (utlist) to store early-arrival active messages */
     MPIDI_OFI_am_unordered_msg_t *am_unordered_msgs;
+
+    MPIDI_OFI_deferred_am_isend_req_t *deferred_am_isend_q;
 }OFI_AM_global_t __attribute__ ((aligned));
 
 /* Global state data */
@@ -378,7 +380,6 @@ typedef struct {
     MPIDI_OFI_conn_manager_t conn_mgr;
 
     void *req_map;
-    MPIDI_OFI_deferred_am_isend_req_t *deferred_am_isend_q;
 
     /* Capability settings */
 #ifdef MPIDI_OFI_ENABLE_RUNTIME_CHECKS

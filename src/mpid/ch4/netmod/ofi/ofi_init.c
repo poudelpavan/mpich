@@ -501,8 +501,6 @@ int MPIDI_OFI_init_local(int *tag_bits)
 
     MPIR_Comm_register_hint(MPIR_COMM_HINT_EAGAIN, "eagain", NULL, MPIR_COMM_HINT_TYPE_BOOL, 0);
 
-    MPIDI_OFI_global.deferred_am_isend_q = NULL;
-
     /* -------------------------------- */
     /* Set up the libfabric provider(s) */
     /* -------------------------------- */
@@ -563,6 +561,9 @@ int MPIDI_OFI_init_local(int *tag_bits)
 #endif
 
     MPIDI_OFI_global.num_vnis = num_vnis;
+    for(int i = 0; i < num_vnis; i++){
+        MPIDI_OFI_global.am_list[i].deferred_am_isend_q = NULL;
+    }
 
     /* Creating the context for vni 0 and nic 0.
      * This code maybe moved to a later stage */
@@ -854,14 +855,18 @@ int MPIDI_OFI_mpi_finalize_hook(void)
 
     if (MPIDI_OFI_ENABLE_AM) {
         
-        MPIDIU_map_destroy(MPIDI_OFI_global.am_send_seq_tracker);
-        MPIDIU_map_destroy(MPIDI_OFI_global.am_recv_seq_tracker);
-
         for(j = 0; j < MPIDI_OFI_global.num_vnis; j++){
+            if(MPIDI_OFI_global.am_list[j].am_unordered_msgs == NULL)
+                continue;
             while (MPIDI_OFI_global.am_list[j].am_unordered_msgs) {
                 MPIDI_OFI_am_unordered_msg_t *uo_msg = MPIDI_OFI_global.am_list[j].am_unordered_msgs;
                 DL_DELETE(MPIDI_OFI_global.am_list[j].am_unordered_msgs, uo_msg);
             }
+        }
+        MPIDIU_map_destroy(MPIDI_OFI_global.am_send_seq_tracker);
+        MPIDIU_map_destroy(MPIDI_OFI_global.am_recv_seq_tracker);
+
+        for(j = 0; j < MPIDI_OFI_global.num_vnis; j++){
             for (i = 0; i < MPIDI_OFI_NUM_AM_BUFFERS; i++)
                 MPIR_gpu_free_host(MPIDI_OFI_global.am_list[j].am_bufs[i]);
         }
