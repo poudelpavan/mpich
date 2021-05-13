@@ -27,7 +27,7 @@ static int am_isend_rdma_event(struct fi_cq_tagged_entry *wc, MPIR_Request * sre
 static int am_isend_pipeline_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_me);
 static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq);
 static int am_read_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_me);
-static int am_repost_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq);
+static int am_repost_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int vci);
 
 static int peek_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq)
 {
@@ -709,19 +709,19 @@ static int am_read_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_
     goto fn_exit;
 }
 
-static int am_repost_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq)
+static int am_repost_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_AM_REPOST_EVENT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_AM_REPOST_EVENT);
 
-    mpi_errno = MPIDI_OFI_repost_buffer(wc->op_context, rreq);
+    mpi_errno = MPIDI_OFI_repost_buffer(wc->op_context, rreq, vci);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_AM_REPOST_EVENT);
     return mpi_errno;
 }
 
-int MPIDI_OFI_dispatch_function(struct fi_cq_tagged_entry *wc, MPIR_Request * req)
+int MPIDI_OFI_dispatch_function(struct fi_cq_tagged_entry *wc, MPIR_Request * req, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -749,7 +749,7 @@ int MPIDI_OFI_dispatch_function(struct fi_cq_tagged_entry *wc, MPIR_Request * re
             mpi_errno = am_recv_event(wc, req);
 
         if (unlikely(wc->flags & FI_MULTI_RECV))
-            mpi_errno = am_repost_event(wc, req);
+            mpi_errno = am_repost_event(wc, req, vci);
 
         goto fn_exit;
     } else if (likely(MPIDI_OFI_REQUEST(req, event_id) == MPIDI_OFI_EVENT_AM_READ)) {
@@ -853,12 +853,12 @@ int MPIDI_OFI_handle_cq_error(int vni_idx, ssize_t ret)
 
                     switch (req->kind) {
                         case MPIR_REQUEST_KIND__SEND:
-                            mpi_errno = MPIDI_OFI_dispatch_function(NULL, req);
+                            mpi_errno = MPIDI_OFI_dispatch_function(NULL, req, vni_idx);
                             break;
 
                         case MPIR_REQUEST_KIND__RECV:
                             mpi_errno =
-                                MPIDI_OFI_dispatch_function((struct fi_cq_tagged_entry *) &e, req);
+                                MPIDI_OFI_dispatch_function((struct fi_cq_tagged_entry *) &e, req, vni_idx);
                             req->status.MPI_ERROR = MPI_ERR_TRUNCATE;
                             break;
 

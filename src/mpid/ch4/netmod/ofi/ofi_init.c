@@ -637,13 +637,13 @@ int init_am(int vci){
             MPIR_Assert(MPIDI_OFI_global.am_bufs[i]);
             MPIDI_OFI_global.am_list[vci].am_iov[i].iov_base = MPIDI_OFI_global.am_bufs[i];
             MPIDI_OFI_global.am_list[vci].am_iov[i].iov_len = MPIDI_OFI_AM_BUFF_SZ;
-            MPIDI_OFI_global.am_msg[i].msg_iov = &MPIDI_OFI_global.am_list[vci].am_iov[i];
-            MPIDI_OFI_global.am_msg[i].desc = NULL;
-            MPIDI_OFI_global.am_msg[i].addr = FI_ADDR_UNSPEC;
-            MPIDI_OFI_global.am_msg[i].context = &MPIDI_OFI_global.am_reqs[i].context;
-            MPIDI_OFI_global.am_msg[i].iov_count = 1;
+            MPIDI_OFI_global.am_list[vci].am_msg[i].msg_iov = &MPIDI_OFI_global.am_list[vci].am_iov[i];
+            MPIDI_OFI_global.am_list[vci].am_msg[i].desc = NULL;
+            MPIDI_OFI_global.am_list[vci].am_msg[i].addr = FI_ADDR_UNSPEC;
+            MPIDI_OFI_global.am_list[vci].am_msg[i].context = &MPIDI_OFI_global.am_reqs[i].context;
+            MPIDI_OFI_global.am_list[vci].am_msg[i].iov_count = 1;
             MPIDI_OFI_CALL_RETRY(fi_recvmsg(MPIDI_OFI_global.ctx[ctx_idx].rx,
-                                            &MPIDI_OFI_global.am_msg[i],
+                                            &MPIDI_OFI_global.am_list[vci].am_msg[i],
                                             FI_MULTI_RECV | FI_COMPLETION), 0, prepost, FALSE);
         }
 

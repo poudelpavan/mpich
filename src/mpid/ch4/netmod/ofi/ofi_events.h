@@ -14,7 +14,7 @@
 
 int MPIDI_OFI_rma_done_event(struct fi_cq_tagged_entry *wc, MPIR_Request * in_req);
 int MPIDI_OFI_get_huge_event(struct fi_cq_tagged_entry *wc, MPIR_Request * req);
-int MPIDI_OFI_dispatch_function(struct fi_cq_tagged_entry *wc, MPIR_Request * req);
+int MPIDI_OFI_dispatch_function(struct fi_cq_tagged_entry *wc, MPIR_Request * req, int vci);
 int MPIDI_OFI_handle_cq_error(int vni_idx, ssize_t ret);
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_cqe_get_source(struct fi_cq_tagged_entry *wc, bool has_err)
@@ -136,7 +136,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_recv_event(struct fi_cq_tagged_entry *wc,
 }
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_dispatch_optimized(struct fi_cq_tagged_entry *wc,
-                                                          MPIR_Request * req)
+                                                          MPIR_Request * req, int vci)
 {
     /* fast path */
     if (MPIDI_OFI_REQUEST(req, event_id) == MPIDI_OFI_EVENT_SEND) {
@@ -146,7 +146,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_dispatch_optimized(struct fi_cq_tagged_en
     }
 
     /* slow path */
-    return MPIDI_OFI_dispatch_function(wc, req);
+    return MPIDI_OFI_dispatch_function(wc, req, vci);
 }
 
 #endif /* OFI_EVENTS_H_INCLUDED */

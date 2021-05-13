@@ -7,6 +7,8 @@
 #define OFI_PROGRESS_H_INCLUDED
 
 #include "ofi_impl.h"
+#include "ofi_am_impl.h"
+#include "ofi_am_events.h"
 
 #define COND_HAS_CQ_BUFFERED ((MPIDI_OFI_global.cq_buffered_static_head != MPIDI_OFI_global.cq_buffered_static_tail) || (NULL != MPIDI_OFI_global.cq_buffered_dynamic_head))
 
@@ -79,7 +81,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_deferred_ops(void)
     goto fn_exit;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_cq_entries(struct fi_cq_tagged_entry *wc, ssize_t num)
+MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_cq_entries(struct fi_cq_tagged_entry *wc, ssize_t num, int vci)
 {
     int i, mpi_errno = MPI_SUCCESS;
     MPIR_Request *req;
@@ -88,7 +90,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_cq_entries(struct fi_cq_tagged_ent
 
     for (i = 0; i < num; i++) {
         req = MPIDI_OFI_context_to_request(wc[i].op_context);
-        mpi_errno = MPIDI_OFI_dispatch_optimized(&wc[i], req);
+        mpi_errno = MPIDI_OFI_dispatch_optimized(&wc[i], req, vci);
         MPIR_ERR_CHECK(mpi_errno);
     }
 
@@ -119,7 +121,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_progress(int vci, int blocking)
 
     if (unlikely(COND_HAS_CQ_BUFFERED)) {
         ret = MPIDI_OFI_get_buffered(wc, 1);
-        mpi_errno = MPIDI_OFI_handle_cq_entries(wc, 1);
+        mpi_errno = MPIDI_OFI_handle_cq_entries(wc, 1, vci);
     } else if (likely(1)) {
         for (int nic = 0; nic < MPIDI_OFI_global.num_nics; nic++) {
             int ctx_idx = MPIDI_OFI_get_ctx_index(vni, nic);
@@ -127,7 +129,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_progress(int vci, int blocking)
                              MPIDI_OFI_NUM_CQ_ENTRIES);
 
             if (likely(ret > 0))
-                mpi_errno = MPIDI_OFI_handle_cq_entries(wc, ret);
+                mpi_errno = MPIDI_OFI_handle_cq_entries(wc, ret, vci);
             else if (ret == -FI_EAGAIN)
                 mpi_errno = MPI_SUCCESS;
             else

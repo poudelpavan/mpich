@@ -260,7 +260,7 @@ int MPIDI_OFI_control_handler(int handler_id, void *am_hdr, void *data, MPI_Aint
 
     switch (ctrlsend->type) {
         case MPIDI_OFI_CTRL_HUGEACK:{
-                mpi_errno = MPIDI_OFI_dispatch_function(NULL, ctrlsend->ackreq);
+                mpi_errno = MPIDI_OFI_dispatch_function(NULL, ctrlsend->ackreq, ctrlsend->vni_src);
                 goto fn_exit;
             }
             break;
