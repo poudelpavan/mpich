@@ -593,28 +593,12 @@ int MPIDI_OFI_init_world(MPIR_Comm * init_comm)
     return mpi_errno;
 }
 
-int MPIDI_OFI_mpi_init_hook(int rank, int size, int appnum, int *tag_bits, MPIR_Comm * init_comm)
-{
+/* ---------------------------------- */
+/* Initialize Active Message          */
+/* ---------------------------------- */
+int init_am(int vci){
     int mpi_errno = MPI_SUCCESS;
     size_t optlen;
-
-    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_MPI_INIT_HOOK);
-    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_MPI_INIT_HOOK);
-
-    /* ------------------------------------------------------------------------ */
-    /* Address exchange (essentially activating the vnis)                       */
-    /* ------------------------------------------------------------------------ */
-
-    /* If opening a named-AV didn't work, we need to do a full business card exchange for the first
-     * VNI. All other VNIs can copy the address information from this on after the fact. */
-    if (!MPIDI_OFI_global.got_named_av) {
-        mpi_errno = addr_exchange_root_vni(init_comm);
-        MPIR_ERR_CHECK(mpi_errno);
-    }
-
-    /* ---------------------------------- */
-    /* Initialize Active Message          */
-    /* ---------------------------------- */
     if (MPIDI_OFI_ENABLE_AM) {
         /* Maximum possible message size for short message send (=eager send)
          * See MPIDI_OFI_do_am_isend for short/long switching logic */
@@ -668,6 +652,38 @@ int MPIDI_OFI_mpi_init_hook(int rank, int size, int appnum, int *tag_bits, MPIR_
     }
     MPL_atomic_store_int(&MPIDI_OFI_global.am_inflight_inject_emus, 0);
     MPL_atomic_store_int(&MPIDI_OFI_global.am_inflight_rma_send_mrs, 0);
+
+  fn_exit:
+    MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_MPI_INIT_HOOK);
+    return mpi_errno;
+  fn_fail:
+    goto fn_exit;
+}
+
+int MPIDI_OFI_mpi_init_hook(int rank, int size, int appnum, int *tag_bits, MPIR_Comm * init_comm)
+{
+    int mpi_errno = MPI_SUCCESS;
+    size_t optlen;
+    int vci = init_comm->seq % MPIR_CVAR_CH4_NUM_VCIS;
+
+    MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_MPI_INIT_HOOK);
+    MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_MPI_INIT_HOOK);
+
+    /* ------------------------------------------------------------------------ */
+    /* Address exchange (essentially activating the vnis)                       */
+    /* ------------------------------------------------------------------------ */
+
+    /* If opening a named-AV didn't work, we need to do a full business card exchange for the first
+     * VNI. All other VNIs can copy the address information from this on after the fact. */
+    if (!MPIDI_OFI_global.got_named_av) {
+        mpi_errno = addr_exchange_root_vni(init_comm);
+        MPIR_ERR_CHECK(mpi_errno);
+    }
+
+    /* ---------------------------------- */
+    /* Initialize Active Message          */
+    /* ---------------------------------- */
+    mpi_errno = init_am(vci);
 
     if (MPIR_CVAR_CH4_OFI_CAPABILITY_SETS_DEBUG && MPIR_Process.rank == 0) {
         dump_dynamic_settings();
