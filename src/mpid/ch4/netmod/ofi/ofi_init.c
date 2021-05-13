@@ -631,11 +631,11 @@ int init_am(int vci){
         MPIDI_OFI_global.am_unordered_msgs = NULL;
 
         for (int i = 0; i < MPIDI_OFI_NUM_AM_BUFFERS; i++) {
-            MPIR_gpu_malloc_host(&(MPIDI_OFI_global.am_bufs[i]), MPIDI_OFI_AM_BUFF_SZ);
+            MPIR_gpu_malloc_host(&(MPIDI_OFI_global.am_list[vci].am_bufs[i]), MPIDI_OFI_AM_BUFF_SZ);
             MPIDI_OFI_global.am_reqs[i].event_id = MPIDI_OFI_EVENT_AM_RECV;
             MPIDI_OFI_global.am_reqs[i].index = i;
-            MPIR_Assert(MPIDI_OFI_global.am_bufs[i]);
-            MPIDI_OFI_global.am_list[vci].am_iov[i].iov_base = MPIDI_OFI_global.am_bufs[i];
+            MPIR_Assert(MPIDI_OFI_global.am_list[vci].am_bufs[i]);
+            MPIDI_OFI_global.am_list[vci].am_iov[i].iov_base = MPIDI_OFI_global.am_list[vci].am_bufs[i];
             MPIDI_OFI_global.am_list[vci].am_iov[i].iov_len = MPIDI_OFI_AM_BUFF_SZ;
             MPIDI_OFI_global.am_list[vci].am_msg[i].msg_iov = &MPIDI_OFI_global.am_list[vci].am_iov[i];
             MPIDI_OFI_global.am_list[vci].am_msg[i].desc = NULL;
@@ -797,7 +797,7 @@ static int flush_send_queue(void)
 int MPIDI_OFI_mpi_finalize_hook(void)
 {
     int mpi_errno = MPI_SUCCESS;
-    int i = 0;
+    int i = 0, j = 0;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_MPI_FINALIZE_HOOK);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_MPI_FINALIZE_HOOK);
@@ -856,8 +856,10 @@ int MPIDI_OFI_mpi_finalize_hook(void)
         MPIDIU_map_destroy(MPIDI_OFI_global.am_send_seq_tracker);
         MPIDIU_map_destroy(MPIDI_OFI_global.am_recv_seq_tracker);
 
-        for (i = 0; i < MPIDI_OFI_NUM_AM_BUFFERS; i++)
-            MPIR_gpu_free_host(MPIDI_OFI_global.am_bufs[i]);
+        for(j = 0; j < MPIDI_OFI_global.num_vnis; j++){
+            for (i = 0; i < MPIDI_OFI_NUM_AM_BUFFERS; i++)
+                MPIR_gpu_free_host(MPIDI_OFI_global.am_list[j].am_bufs[i]);
+        }
 
         MPIDU_genq_private_pool_destroy_unsafe(MPIDI_OFI_global.am_hdr_buf_pool);
 
