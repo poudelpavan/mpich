@@ -942,6 +942,11 @@ int MPIDI_OFI_post_init(void)
     if (MPIDI_OFI_global.num_vnis > 1 || MPIDI_OFI_global.num_nics > 1) {
         mpi_errno = addr_exchange_all_vnis();
     }
+
+    /* Initialize AM for all other vnis */
+    for (int vni = 1; vni < MPIDI_OFI_global.num_vnis; vni++){
+        mpi_errno = init_am(vni);
+    }
   fn_fail:
     return mpi_errno;
 }
