@@ -19,7 +19,7 @@ static int send_huge_event(struct fi_cq_tagged_entry *wc, MPIR_Request * sreq);
 static int ssend_ack_event(struct fi_cq_tagged_entry *wc, MPIR_Request * sreq);
 static uintptr_t recv_rbase(MPIDI_OFI_huge_recv_t * recv);
 static int chunk_done_event(struct fi_cq_tagged_entry *wc, MPIR_Request * req);
-static int inject_emu_event(struct fi_cq_tagged_entry *wc, MPIR_Request * req);
+static int inject_emu_event(struct fi_cq_tagged_entry *wc, MPIR_Request * req, int vci);
 static int accept_probe_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq);
 static int dynproc_done_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq);
 static int am_isend_event(struct fi_cq_tagged_entry *wc, MPIR_Request * sreq);
@@ -427,7 +427,7 @@ static int chunk_done_event(struct fi_cq_tagged_entry *wc, MPIR_Request * req)
     return MPI_SUCCESS;
 }
 
-static int inject_emu_event(struct fi_cq_tagged_entry *wc, MPIR_Request * req)
+static int inject_emu_event(struct fi_cq_tagged_entry *wc, MPIR_Request * req, int vci)
 {
     int incomplete;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_INJECT_EMU_EVENT);
@@ -438,7 +438,7 @@ static int inject_emu_event(struct fi_cq_tagged_entry *wc, MPIR_Request * req)
     if (!incomplete) {
         MPL_free(MPIDI_OFI_REQUEST(req, util.inject_buf));
         MPIDI_CH4_REQUEST_FREE(req);
-        MPL_atomic_fetch_sub_int(&MPIDI_OFI_global.am_inflight_inject_emus, 1);
+        MPL_atomic_fetch_sub_int(&MPIDI_OFI_global.am_list[vci].am_inflight_inject_emus, 1);
     }
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_INJECT_EMU_EVENT);
@@ -798,7 +798,7 @@ int MPIDI_OFI_dispatch_function(struct fi_cq_tagged_entry *wc, MPIR_Request * re
                 break;
 
             case MPIDI_OFI_EVENT_INJECT_EMU:
-                mpi_errno = inject_emu_event(wc, req);
+                mpi_errno = inject_emu_event(wc, req, vci);
                 break;
 
             case MPIDI_OFI_EVENT_DYNPROC_DONE:

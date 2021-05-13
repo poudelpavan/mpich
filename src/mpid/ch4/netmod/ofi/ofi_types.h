@@ -297,6 +297,8 @@ typedef struct {
     struct fi_msg am_msg[MPIDI_OFI_MAX_NUM_AM_BUFFERS];
     void *am_bufs[MPIDI_OFI_MAX_NUM_AM_BUFFERS];
     MPIDI_OFI_am_repost_request_t am_reqs[MPIDI_OFI_MAX_NUM_AM_BUFFERS];
+
+    MPL_atomic_int_t am_inflight_inject_emus;
 }OFI_AM_global_t __attribute__ ((aligned));
 
 /* Global state data */
@@ -346,7 +348,7 @@ typedef struct {
     OFI_AM_global_t am_list[MPIDI_CH4_MAX_VCIS];
 
     MPIDU_genq_private_pool_t am_hdr_buf_pool;
-    MPL_atomic_int_t am_inflight_inject_emus;
+    
     MPL_atomic_int_t am_inflight_rma_send_mrs;
     /* Sequence number trackers for active messages */
     void *am_send_seq_tracker;

@@ -484,7 +484,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_eager(int rank, MPIR_Comm * c
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_emulated_inject(fi_addr_t addr,
                                                           const MPIDI_OFI_am_header_t * msg_hdrp,
-                                                          const void *am_hdr, size_t am_hdr_sz)
+                                                          const void *am_hdr, size_t am_hdr_sz, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *sreq;
@@ -503,7 +503,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_emulated_inject(fi_addr_t addr,
 
     MPIDI_OFI_REQUEST(sreq, event_id) = MPIDI_OFI_EVENT_INJECT_EMU;
     MPIDI_OFI_REQUEST(sreq, util.inject_buf) = ibuf;
-    MPL_atomic_fetch_add_int(&MPIDI_OFI_global.am_inflight_inject_emus, 1);
+    MPL_atomic_fetch_add_int(&MPIDI_OFI_global.am_list[vci].am_inflight_inject_emus, 1);
 
     MPIDI_OFI_CALL_RETRY_AM(fi_send(MPIDI_OFI_global.ctx[ctx_idx].tx, ibuf, len,
                                     NULL /* desc */ , addr, &(MPIDI_OFI_REQUEST(sreq, context))),
@@ -525,6 +525,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_inject(int rank,
     char *buff;
     size_t buff_len;
     int nic = 0;
+    int vci = comm->seq % MPIDI_CH4_MAX_VCIS;
     int ctx_idx = MPIDI_OFI_get_ctx_index(0, nic);
     MPIR_CHKLMEM_DECL(1);
 
@@ -547,7 +548,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_inject(int rank,
     addr = MPIDI_OFI_comm_to_phys(comm, rank, nic, 0, 0);
 
     if (unlikely(am_hdr_sz + sizeof(msg_hdr) > MPIDI_OFI_global.max_buffered_send)) {
-        mpi_errno = MPIDI_OFI_do_emulated_inject(addr, &msg_hdr, am_hdr, am_hdr_sz);
+        mpi_errno = MPIDI_OFI_do_emulated_inject(addr, &msg_hdr, am_hdr, am_hdr_sz, vci);
         goto fn_exit;
     }
 
