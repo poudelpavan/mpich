@@ -290,6 +290,11 @@ typedef struct {
                                  * This is typically the socket above the NIC */
 } MPIDI_OFI_nic_info_t;
 
+/* AM related variables */
+typedef struct {
+    
+}OFI_AM_global_t __attribute__ ((aligned));
+
 /* Global state data */
 #define MPIDI_KVSAPPSTRLEN 1024
 typedef struct {
