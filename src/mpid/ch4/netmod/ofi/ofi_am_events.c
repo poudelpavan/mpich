@@ -14,19 +14,21 @@ int MPIDI_OFI_am_rdma_read_ack_handler(int handler_id, void *am_hdr, void *data,
     MPIR_Request *sreq;
     MPIDI_OFI_am_rdma_read_ack_msg_t *ack_msg;
     int src_handler_id;
+    int vci = 0;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_AM_RDMA_READ_ACK_HANDLER);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_AM_RDMA_READ_ACK_HANDLER);
 
     ack_msg = (MPIDI_OFI_am_rdma_read_ack_msg_t *) am_hdr;
     sreq = ack_msg->sreq_ptr;
+    vci = MPIDI_Request_get_vci(sreq);
 
     if (!MPIDI_OFI_ENABLE_MR_PROV_KEY) {
         uint64_t mr_key = fi_mr_key(MPIDI_OFI_AMREQUEST_HDR(sreq, lmt_mr));
         MPIDI_OFI_mr_key_free(MPIDI_OFI_LOCAL_MR_KEY, mr_key);
     }
     MPIDI_OFI_CALL(fi_close(&MPIDI_OFI_AMREQUEST_HDR(sreq, lmt_mr)->fid), mr_unreg);
-    MPL_atomic_fetch_sub_int(&MPIDI_OFI_global.am_inflight_rma_send_mrs, 1);
+    MPL_atomic_fetch_sub_int(&MPIDI_OFI_global.am_list[vci].am_inflight_rma_send_mrs, 1);
 
     MPIR_gpu_free_host(MPIDI_OFI_AMREQUEST_HDR(sreq, pack_buffer));
 

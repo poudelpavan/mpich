@@ -651,7 +651,7 @@ int init_am(int vci){
         MPIDIG_am_reg_cb(MPIDI_OFI_AM_RDMA_READ_ACK, NULL, &MPIDI_OFI_am_rdma_read_ack_handler);
     }
     MPL_atomic_store_int(&MPIDI_OFI_global.am_list[vci].am_inflight_inject_emus, 0);
-    MPL_atomic_store_int(&MPIDI_OFI_global.am_inflight_rma_send_mrs, 0);
+    MPL_atomic_store_int(&MPIDI_OFI_global.am_list[vci].am_inflight_rma_send_mrs, 0);
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_MPI_INIT_HOOK);
@@ -808,8 +808,10 @@ int MPIDI_OFI_mpi_finalize_hook(void)
 
     /* Progress until we drain all inflight RMA send long buffers */
     /* NOTE: am currently only use vni 0. Need update once that changes */
-    while (MPL_atomic_load_int(&MPIDI_OFI_global.am_inflight_rma_send_mrs) > 0)
-        MPIDI_OFI_PROGRESS(0);
+    for(i = 0; i < MPIDI_OFI_global.num_vnis; i++){
+        while (MPL_atomic_load_int(&MPIDI_OFI_global.am_list[i].am_inflight_rma_send_mrs) > 0)
+            MPIDI_OFI_PROGRESS(i);
+    }
 
     /* Destroy RMA key allocator */
     MPIDI_OFI_mr_key_allocator_destroy();
