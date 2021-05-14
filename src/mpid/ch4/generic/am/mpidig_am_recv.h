@@ -344,14 +344,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_irecv(void *buf,
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_MPI_IRECV);
     /* For anysource recv, we may be called while holding the vci lock of shm request (to
      * prevent shm progress). Therefore, recursive locking is allowed here */
-    MPID_THREAD_CS_ENTER_REC_VCI(MPIDI_VCI(0).lock);
+    MPID_THREAD_CS_ENTER_REC_VCI(MPIDI_VCI(vni_dst).lock);
 
     mpi_errno =
         MPIDIG_do_irecv(buf, count, datatype, rank, tag, comm, context_offset, request, 1, 0ULL, vni_src, vni_dst);
     MPIR_ERR_CHECK(mpi_errno);
   fn_exit:
     MPIDI_REQUEST_SET_LOCAL(*request, is_local, partner);
-    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(0).lock);
+    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vni_dst).lock);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_MPI_IRECV);
     return mpi_errno;
   fn_fail:

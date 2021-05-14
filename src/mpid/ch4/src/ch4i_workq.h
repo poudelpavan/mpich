@@ -382,15 +382,15 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_workq_vci_progress_unsafe(void)
     goto fn_exit;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_workq_vci_progress(void)
+MPL_STATIC_INLINE_PREFIX int MPIDI_workq_vci_progress(int vci)
 {
     int mpi_errno = MPI_SUCCESS;
 
-    MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(0).lock);
+    MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vci).lock);
 
     mpi_errno = MPIDI_workq_vci_progress_unsafe();
 
-    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(0).lock);
+    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vci).lock);
   fn_fail:
     return mpi_errno;
 }

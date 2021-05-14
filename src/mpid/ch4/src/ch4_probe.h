@@ -14,13 +14,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_iprobe(int source,
                                           MPIDI_av_entry_t * av, int *flag, MPI_Status * status)
 {
     int mpi_errno = MPI_SUCCESS;
+    int vci = comm->seq % MPIDI_CH4_MAX_VCIS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_IPROBE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_IPROBE);
 
 #ifdef MPIDI_CH4_USE_WORK_QUEUES
-    MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(0).lock);
+    MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vci).lock);
     MPIDI_workq_vci_progress_unsafe();
-    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(0).lock);
+    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vci).lock);
 #endif
 
 #ifdef MPIDI_CH4_DIRECT_NETMOD
@@ -54,13 +55,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_improbe(int source,
                                            int *flag, MPIR_Request ** message, MPI_Status * status)
 {
     int mpi_errno = MPI_SUCCESS;
+    int vci = comm->seq % MPIDI_CH4_MAX_VCIS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_IMPROBE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_IMPROBE);
 
 #ifdef MPIDI_CH4_USE_WORK_QUEUES
-    MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(0).lock);
+    MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(vci).lock);
     MPIDI_workq_vci_progress_unsafe();
-    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(0).lock);
+    MPID_THREAD_CS_EXIT(VCI, MPIDI_VCI(vci).lock);
 #endif
 
 #ifdef MPIDI_CH4_DIRECT_NETMOD
