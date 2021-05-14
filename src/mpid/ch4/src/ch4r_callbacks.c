@@ -63,7 +63,7 @@ int MPIDIG_check_cmpl_order(MPIR_Request * req)
 
     MPIDIG_REQUEST(req, req->request) = req;
     /* MPIDI_CS_ENTER(); */
-    DL_APPEND(MPIDI_global.cmpl_list, req->dev.ch4.am.req);
+    DL_APPEND(MPIDI_global.per_vci_list[vci].cmpl_list, req->dev.ch4.am.req);
     /* MPIDI_CS_EXIT(); */
 
   fn_exit:
@@ -81,9 +81,9 @@ void MPIDIG_progress_compl_list(int vci)
 
     /* MPIDI_CS_ENTER(); */
   do_check_again:
-    DL_FOREACH_SAFE(MPIDI_global.cmpl_list, curr, tmp) {
+    DL_FOREACH_SAFE(MPIDI_global.per_vci_list[vci].cmpl_list, curr, tmp) {
         if (curr->seq_no == MPL_atomic_load_uint64(&MPIDI_global.per_vci_list[vci].exp_seq_no)) {
-            DL_DELETE(MPIDI_global.cmpl_list, curr);
+            DL_DELETE(MPIDI_global.per_vci_list[vci].cmpl_list, curr);
             req = (MPIR_Request *) curr->request;
             MPIDIG_REQUEST(req, req->target_cmpl_cb) (req);
             goto do_check_again;
