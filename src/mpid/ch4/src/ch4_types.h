@@ -256,6 +256,12 @@ typedef union MPIDI_vci {
 
 #define MPIDI_VCI(i) MPIDI_global.vci[i].vci
 
+/* per-vci data structure for Active Messages*/
+typedef struct {
+    MPL_atomic_uint64_t exp_seq_no;
+    MPL_atomic_uint64_t nxt_seq_no;
+}am_per_vci_t __attribute__ ((aligned));
+
 typedef struct MPIDI_CH4_Global_t {
     MPIR_Request *request_test;
     MPIR_Comm *comm_test;
@@ -278,10 +284,12 @@ typedef struct MPIDI_CH4_Global_t {
     MPIDIG_part_rreq_t *part_posted_list;
     MPIDIG_part_rreq_t *part_unexp_list;
     MPIDIG_req_ext_t *cmpl_list;
-    MPL_atomic_uint64_t exp_seq_no;
-    MPL_atomic_uint64_t nxt_seq_no;
     MPIDU_genq_private_pool_t request_pool;
     MPIDU_genq_private_pool_t unexp_pack_buf_pool;
+
+    /* Allocate per-vci data structure */
+    am_per_vci_t per_vci_list[MPIDI_CH4_MAX_VCIS];
+    
 #ifdef HAVE_SIGNAL
     void (*prev_sighandler) (int);
     volatile int sigusr1_count;
