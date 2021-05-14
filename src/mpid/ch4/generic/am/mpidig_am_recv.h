@@ -37,6 +37,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_handle_unexpected(void *buf, MPI_Aint count,
     MPI_Aint dt_true_lb;
     MPIR_Datatype *dt_ptr;
     size_t in_data_sz, dt_sz, nbytes;
+    int vci = comm->seq % MPIDI_CH4_MAX_VCIS;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_HANDLE_UNEXPECTED);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_HANDLE_UNEXPECTED);
@@ -88,7 +89,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_handle_unexpected(void *buf, MPI_Aint count,
     }
 
     MPIDIG_REQUEST(rreq, req->status) &= ~MPIDIG_REQ_UNEXPECTED;
-    MPIDU_genq_private_pool_free_cell(MPIDI_global.unexp_pack_buf_pool,
+    MPIDU_genq_private_pool_free_cell(MPIDI_global.per_vci_list[vci].unexp_pack_buf_pool,
                                       MPIDIG_REQUEST(rreq, buffer));
 
     rreq->status.MPI_SOURCE = MPIDIG_REQUEST(rreq, rank);
@@ -234,7 +235,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_do_irecv(void *buf, MPI_Aint count, MPI_Data
 
     if (*request != NULL) {
         rreq = *request;
-        MPIDIG_request_init(rreq, MPIR_REQUEST_KIND__RECV);
+        MPIDIG_request_init(rreq, MPIR_REQUEST_KIND__RECV, vni_dst);
     } else if (alloc_req) {
         rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RECV, 2, vni_dst);
         MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");

@@ -102,6 +102,7 @@ static int handle_unexp_cmpl(MPIR_Request * rreq)
     MPI_Aint dt_true_lb;
     MPIR_Datatype *dt_ptr;
     size_t dt_sz;
+    int vci = MPIDI_Request_get_vci(rreq);
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_HANDLE_UNEXP_CMPL);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_HANDLE_UNEXP_CMPL);
@@ -205,7 +206,7 @@ static int handle_unexp_cmpl(MPIR_Request * rreq)
     MPIR_Datatype_release_if_not_builtin(MPIDIG_REQUEST(match_req, datatype));
     if (MPIDIG_REQUEST(rreq, buffer)) {
         /* unexp pack buf is MPI_BYTE type, count == data size */
-        MPIDU_genq_private_pool_free_cell(MPIDI_global.unexp_pack_buf_pool,
+        MPIDU_genq_private_pool_free_cell(MPIDI_global.per_vci_list[vci].unexp_pack_buf_pool,
                                           MPIDIG_REQUEST(rreq, buffer));
     }
     MPIR_Object_release_ref(rreq, &in_use);
@@ -350,7 +351,7 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
                 /* If there is inline data, we allocate unexpected buffer */
                 MPIR_Assert(in_data_sz <= MPIR_CVAR_CH4_AM_PACK_BUFFER_SIZE);
                 mpi_errno =
-                    MPIDU_genq_private_pool_alloc_cell(MPIDI_global.unexp_pack_buf_pool, &pack_buf);
+                    MPIDU_genq_private_pool_alloc_cell(MPIDI_global.per_vci_list[vci].unexp_pack_buf_pool, &pack_buf);
                 MPIR_Assert(pack_buf);
                 MPIDIG_REQUEST(rreq, buffer) = pack_buf;
             } else {
@@ -399,7 +400,7 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
             root_comm_again = MPIDIG_context_id_to_comm(hdr->context_id);
             if (unlikely(root_comm_again != NULL)) {
                 MPID_THREAD_CS_EXIT(VCI, MPIDIU_THREAD_MPIDIG_GLOBAL_MUTEX);
-                MPIDU_genq_private_pool_free_cell(MPIDI_global.unexp_pack_buf_pool,
+                MPIDU_genq_private_pool_free_cell(MPIDI_global.per_vci_list[vci].unexp_pack_buf_pool,
                                                   MPIDIG_REQUEST(rreq, buffer));
                 MPIDI_CH4_REQUEST_FREE(rreq);
                 MPID_Request_complete(rreq);

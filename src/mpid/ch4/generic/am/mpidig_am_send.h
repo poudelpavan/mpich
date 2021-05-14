@@ -44,7 +44,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_isend_impl(const void *buf, MPI_Aint count,
         MPIR_ERR_CHKANDSTMT((sreq) == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
         *request = sreq;
     } else {
-        MPIDIG_request_init(sreq, MPIR_REQUEST_KIND__SEND);
+        MPIDIG_request_init(sreq, MPIR_REQUEST_KIND__SEND, vni_src);
     }
 
     MPIDIG_hdr_t am_hdr;

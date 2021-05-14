@@ -7,6 +7,7 @@
 #define OFI_RMA_H_INCLUDED
 
 #include "ofi_impl.h"
+#include "ofi_win.h"
 
 #define MPIDI_OFI_QUERY_ATOMIC_COUNT         0
 #define MPIDI_OFI_QUERY_FETCH_ATOMIC_COUNT   1

@@ -261,6 +261,8 @@ typedef struct {
     MPL_atomic_uint64_t exp_seq_no;
     MPL_atomic_uint64_t nxt_seq_no;
     MPIDIG_req_ext_t *cmpl_list;
+    MPIDU_genq_private_pool_t buffer_pool;
+    MPIDU_genq_private_pool_t unexp_pack_buf_pool;
 }am_per_vci_t __attribute__ ((aligned));
 
 typedef struct MPIDI_CH4_Global_t {
@@ -284,8 +286,6 @@ typedef struct MPIDI_CH4_Global_t {
 #endif
     MPIDIG_part_rreq_t *part_posted_list;
     MPIDIG_part_rreq_t *part_unexp_list;
-    MPIDU_genq_private_pool_t request_pool;
-    MPIDU_genq_private_pool_t unexp_pack_buf_pool;
 
     /* Allocate per-vci data structure */
     am_per_vci_t per_vci_list[MPIDI_CH4_MAX_VCIS];
