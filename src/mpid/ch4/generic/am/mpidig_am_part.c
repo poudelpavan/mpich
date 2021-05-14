@@ -13,6 +13,7 @@ static int part_req_create(void *buf, int partitions, MPI_Aint count,
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *req = NULL;
+    int vci = comm->seq % MPIDI_CH4_MAX_VCIS;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_PART_REQ_CREATE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_PART_REQ_CREATE);
@@ -20,7 +21,7 @@ static int part_req_create(void *buf, int partitions, MPI_Aint count,
     MPID_THREAD_CS_ENTER(VCI, MPIDI_VCI(0).lock);
 
     /* Set refcnt=1 for user-defined partitioned pattern; decrease at request_free. */
-    MPIDI_CH4_REQUEST_CREATE(req, kind, 0, 1);
+    MPIDI_CH4_REQUEST_CREATE(req, kind, vci, 1);
     MPIR_ERR_CHKANDSTMT((req) == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
 
     MPIR_Comm_add_ref(comm);

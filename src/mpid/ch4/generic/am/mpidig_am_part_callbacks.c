@@ -70,6 +70,9 @@ int MPIDIG_part_send_init_target_msg_cb(int handler_id, void *am_hdr, void *data
 
     MPIDIG_part_send_init_msg_t *msg_hdr = (MPIDIG_part_send_init_msg_t *) am_hdr;
     MPIR_Request *posted_req = NULL;
+    int vci = 0;
+    if(msg_hdr)
+        vci = MPIDI_Request_get_vci(msg_hdr->sreq_ptr);
     posted_req = MPIDIG_part_dequeue(msg_hdr->src_rank, msg_hdr->tag, msg_hdr->context_id,
                                      &MPIDI_global.part_posted_list);
     if (posted_req) {
@@ -84,7 +87,7 @@ int MPIDIG_part_send_init_target_msg_cb(int handler_id, void *am_hdr, void *data
         MPIR_Request *unexp_req = NULL;
 
         /* Create temporary unexpected request, freed when matched with a precv_init. */
-        MPIDI_CH4_REQUEST_CREATE(unexp_req, MPIR_REQUEST_KIND__PART_RECV, 0, 1);
+        MPIDI_CH4_REQUEST_CREATE(unexp_req, MPIR_REQUEST_KIND__PART_RECV, vci, 1);
         MPIR_ERR_CHKANDSTMT(unexp_req == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail,
                             "**nomemreq");
 
@@ -121,10 +124,11 @@ int MPIDIG_part_cts_target_msg_cb(int handler_id, void *am_hdr, void *data,
     MPIDIG_part_cts_msg_t *msg_hdr = (MPIDIG_part_cts_msg_t *) am_hdr;
     MPIR_Request *part_sreq = msg_hdr->sreq_ptr;
     MPIR_Assert(part_sreq);
+    int vci = MPIDI_Request_get_vci(part_sreq);
 
     MPIDIG_PART_REQUEST(part_sreq, peer_req_ptr) = msg_hdr->rreq_ptr;
     MPIDIG_PART_REQ_INC_FETCH_STATUS(part_sreq);
-    mpi_errno = MPIDIG_post_pready(part_sreq, is_local);
+    mpi_errno = MPIDIG_post_pready(part_sreq, is_local, vci);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_PART_CTS_TARGET_MSG_CB);
     return mpi_errno;
@@ -143,12 +147,13 @@ int MPIDIG_part_send_data_target_msg_cb(int handler_id, void *am_hdr, void *data
     MPIDIG_part_send_data_msg_t *msg_hdr = (MPIDIG_part_send_data_msg_t *) am_hdr;
     MPIR_Request *part_rreq = msg_hdr->rreq_ptr;
     MPIR_Assert(part_rreq);
+    int vci = MPIDI_Request_get_vci(part_rreq);
 
     /* Erroneous if received data with a non-CTS rreq */
     MPIDIG_PART_CHECK_RREQ_CTS(part_rreq);
 
     /* Setup an AM rreq to receive data */
-    MPIR_Request *rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__PART, 1);
+    MPIR_Request *rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__PART, 1, vci);
     MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
 
     MPIDIG_REQUEST(rreq, buffer) = MPIDI_PART_REQUEST(part_rreq, buffer);

@@ -28,6 +28,7 @@ int MPIDIG_am_comm_abort(MPIR_Comm * comm, int exit_code)
     int dest;
     int size = 0;
     MPIR_Request *sreq = NULL;
+    int vci = comm->seq % MPIDI_CH4_MAX_VCIS;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_AM_COMM_ABORT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_AM_COMM_ABORT);
@@ -46,7 +47,7 @@ int MPIDIG_am_comm_abort(MPIR_Comm * comm, int exit_code)
             continue;
 
         /* 2 references, 1 for MPID-layer and 1 for MPIR-layer */
-        sreq = MPIDIG_request_create(MPIR_REQUEST_KIND__SEND, 2);
+        sreq = MPIDIG_request_create(MPIR_REQUEST_KIND__SEND, 2, vci);
         MPIR_ERR_CHKANDSTMT((sreq) == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
 
         /* FIXME: only NM? */

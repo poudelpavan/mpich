@@ -127,7 +127,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_do_am_recv(MPIR_Request * rreq)
 MPL_STATIC_INLINE_PREFIX int MPIDIG_do_irecv(void *buf, MPI_Aint count, MPI_Datatype datatype,
                                              int rank, int tag, MPIR_Comm * comm,
                                              int context_offset, MPIR_Request ** request,
-                                             int alloc_req, uint64_t flags)
+                                             int alloc_req, uint64_t flags, int vni_src, int vni_dst)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *rreq = NULL, *unexp_req = NULL;
@@ -236,7 +236,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_do_irecv(void *buf, MPI_Aint count, MPI_Data
         rreq = *request;
         MPIDIG_request_init(rreq, MPIR_REQUEST_KIND__RECV);
     } else if (alloc_req) {
-        rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RECV, 2);
+        rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RECV, 2, vni_dst);
         MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
     } else {
         rreq = *request;
@@ -337,7 +337,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_irecv(void *buf,
                                               int tag,
                                               MPIR_Comm * comm, int context_offset,
                                               MPIR_Request ** request,
-                                              int is_local, MPIR_Request * partner)
+                                              int is_local, MPIR_Request * partner, int vni_src, int vni_dst)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_MPI_IRECV);
@@ -347,7 +347,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_irecv(void *buf,
     MPID_THREAD_CS_ENTER_REC_VCI(MPIDI_VCI(0).lock);
 
     mpi_errno =
-        MPIDIG_do_irecv(buf, count, datatype, rank, tag, comm, context_offset, request, 1, 0ULL);
+        MPIDIG_do_irecv(buf, count, datatype, rank, tag, comm, context_offset, request, 1, 0ULL, vni_src, vni_dst);
     MPIR_ERR_CHECK(mpi_errno);
   fn_exit:
     MPIDI_REQUEST_SET_LOCAL(*request, is_local, partner);

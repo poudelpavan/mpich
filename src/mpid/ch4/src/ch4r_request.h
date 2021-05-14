@@ -10,14 +10,14 @@
 #include "mpidu_genq.h"
 
 MPL_STATIC_INLINE_PREFIX MPIR_Request *MPIDIG_request_create(MPIR_Request_kind_t kind,
-                                                             int ref_count)
+                                                             int ref_count, int vci)
 {
     MPIR_Request *req;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_REQUEST_CREATE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_REQUEST_CREATE);
 
-    MPIDI_CH4_REQUEST_CREATE(req, kind, 0, ref_count);
+    MPIDI_CH4_REQUEST_CREATE(req, kind, vci, ref_count);
     if (req == NULL)
         goto fn_fail;
 

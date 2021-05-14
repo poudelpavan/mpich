@@ -51,7 +51,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_part_start(MPIR_Request * request, int is_lo
 /* Checks whether all partitions are ready and MPIDIG_PART_REQ_CTS has been received,
  * If so, then issues data. Otherwise a no-op.
  */
-MPL_STATIC_INLINE_PREFIX int MPIDIG_post_pready(MPIR_Request * part_sreq, int is_local)
+MPL_STATIC_INLINE_PREFIX int MPIDIG_post_pready(MPIR_Request * part_sreq, int is_local, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_POST_PREADY);
@@ -63,7 +63,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_post_pready(MPIR_Request * part_sreq, int is
     if (MPIR_cc_get(MPIDIG_PART_REQUEST(part_sreq, u.send).ready_cntr) ==
         part_sreq->u.part.partitions &&
         MPL_atomic_load_int(&MPIDIG_PART_REQUEST(part_sreq, status)) == MPIDIG_PART_REQ_CTS) {
-        mpi_errno = MPIDIG_part_issue_data(part_sreq, is_local);
+        mpi_errno = MPIDIG_part_issue_data(part_sreq, is_local, vci);
         MPIR_ERR_CHECK(mpi_errno);
     }
 
@@ -82,13 +82,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_pready_range(int partition_low, int part
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_MPI_PREADY_RANGE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_MPI_PREADY_RANGE);
 
+    int vci = MPIDI_Request_get_vci(part_sreq);
     int c = 0, i;
     for (i = partition_low; i <= partition_high; i++)
         MPIR_cc_incr(&MPIDIG_PART_REQUEST(part_sreq, u.send).ready_cntr, &c);
     MPIR_Assert(MPIR_cc_get(MPIDIG_PART_REQUEST(part_sreq, u.send).ready_cntr) <=
                 part_sreq->u.part.partitions);
 
-    mpi_errno = MPIDIG_post_pready(part_sreq, is_local);
+    mpi_errno = MPIDIG_post_pready(part_sreq, is_local, vci);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_MPI_PREADY_RANGE);
     return mpi_errno;
@@ -101,13 +102,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_pready_list(int length, int array_of_par
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_MPI_PREADY_LIST);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_MPI_PREADY_LIST);
 
+    int vci = MPIDI_Request_get_vci(part_sreq);
     int i, c = 0;
     for (i = 0; i < length; i++)
         MPIR_cc_incr(&MPIDIG_PART_REQUEST(part_sreq, u.send).ready_cntr, &c);
     MPIR_Assert(MPIR_cc_get(MPIDIG_PART_REQUEST(part_sreq, u.send).ready_cntr) <=
                 part_sreq->u.part.partitions);
 
-    mpi_errno = MPIDIG_post_pready(part_sreq, is_local);
+    mpi_errno = MPIDIG_post_pready(part_sreq, is_local, vci);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_MPI_PREADY_LIST);
     return mpi_errno;
