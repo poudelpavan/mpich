@@ -613,7 +613,7 @@ int init_am(int vci){
                                                   MPIDI_OFI_AM_HDR_POOL_NUM_CELLS_PER_CHUNK,
                                                   MPIDI_OFI_AM_HDR_POOL_MAX_NUM_CELLS,
                                                   host_alloc, host_free,
-                                                  &MPIDI_OFI_global.am_hdr_buf_pool);
+                                                  &MPIDI_OFI_global.am_list[vci].am_hdr_buf_pool);
         MPIR_ERR_CHECK(mpi_errno);
 
         MPIDI_OFI_global.cq_buffered_dynamic_head = MPIDI_OFI_global.cq_buffered_dynamic_tail =
@@ -869,9 +869,9 @@ int MPIDI_OFI_mpi_finalize_hook(void)
         for(j = 0; j < MPIDI_OFI_global.num_vnis; j++){
             for (i = 0; i < MPIDI_OFI_NUM_AM_BUFFERS; i++)
                 MPIR_gpu_free_host(MPIDI_OFI_global.am_list[j].am_bufs[i]);
-        }
 
-        MPIDU_genq_private_pool_destroy_unsafe(MPIDI_OFI_global.am_hdr_buf_pool);
+            MPIDU_genq_private_pool_destroy_unsafe(MPIDI_OFI_global.am_list[j].am_hdr_buf_pool);
+        }
 
         MPIR_Assert(MPIDI_OFI_global.cq_buffered_static_head ==
                     MPIDI_OFI_global.cq_buffered_static_tail);

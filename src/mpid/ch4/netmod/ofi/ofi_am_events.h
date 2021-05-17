@@ -178,7 +178,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_rdma_read(void *dst,
         curr_len = MPL_MIN(rem, MPIDI_OFI_global.max_msg_size);
 
         MPIR_Assert(sizeof(MPIDI_OFI_am_request_t) <= MPIDI_OFI_AM_HDR_POOL_CELL_SIZE);
-        MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.am_hdr_buf_pool, (void **) &am_req);
+        MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.am_list[vci].am_hdr_buf_pool, (void **) &am_req);
         MPIR_Assert(am_req);
 
         am_req->req_hdr = MPIDI_OFI_AMREQUEST(rreq, req_hdr);
@@ -247,7 +247,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_rdma_read(MPIDI_OFI_am_header_t * 
         goto fn_exit;
 
     MPIDI_OFI_am_clear_request(rreq);
-    mpi_errno = MPIDI_OFI_am_init_request(NULL, 0, rreq);
+    mpi_errno = MPIDI_OFI_am_init_request(NULL, 0, rreq, vci);
 
     MPIR_ERR_CHECK(mpi_errno);
 

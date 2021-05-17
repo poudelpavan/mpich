@@ -26,7 +26,7 @@ static int am_isend_event(struct fi_cq_tagged_entry *wc, MPIR_Request * sreq, in
 static int am_isend_rdma_event(struct fi_cq_tagged_entry *wc, MPIR_Request * sreq);
 static int am_isend_pipeline_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_me, int vci);
 static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int vci);
-static int am_read_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_me);
+static int am_read_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_me, int vci);
 static int am_repost_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int vci);
 
 static int peek_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq)
@@ -524,7 +524,7 @@ static int am_isend_pipeline_event(struct fi_cq_tagged_entry *wc, MPIR_Request *
 
     MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.pack_buf_pool, ofi_req->pack_buffer);
 
-    MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.am_hdr_buf_pool, ofi_req);
+    MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.am_list[vci].am_hdr_buf_pool, ofi_req);
 
     int is_done = MPIDIG_am_send_async_finish_seg(sreq);
 
@@ -669,7 +669,7 @@ static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int
     goto fn_exit;
 }
 
-static int am_read_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_me)
+static int am_read_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_me, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *rreq;
@@ -702,7 +702,7 @@ static int am_read_event(struct fi_cq_tagged_entry *wc, MPIR_Request * dont_use_
     MPIDIG_REQUEST(rreq, req->target_cmpl_cb) (rreq);
     MPID_Request_complete(rreq);
   fn_exit:
-    MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.am_hdr_buf_pool, ofi_req);
+    MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.am_list[vci].am_hdr_buf_pool, ofi_req);
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_AM_READ_EVENT);
     return mpi_errno;
   fn_fail:
@@ -753,7 +753,7 @@ int MPIDI_OFI_dispatch_function(struct fi_cq_tagged_entry *wc, MPIR_Request * re
 
         goto fn_exit;
     } else if (likely(MPIDI_OFI_REQUEST(req, event_id) == MPIDI_OFI_EVENT_AM_READ)) {
-        mpi_errno = am_read_event(wc, req);
+        mpi_errno = am_read_event(wc, req, vci);
         goto fn_exit;
     } else if (unlikely(1)) {
         switch (MPIDI_OFI_REQUEST(req, event_id)) {

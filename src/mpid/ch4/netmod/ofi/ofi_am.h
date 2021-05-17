@@ -122,6 +122,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isendv(int rank,
     int i;
     MPI_Aint am_hdr_sz = 0;
     char *am_hdr_buf;
+    int vci = comm->seq % MPIDI_CH4_MAX_VCIS;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_NM_AM_ISENDV);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_NM_AM_ISENDV);
@@ -134,7 +135,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isendv(int rank,
         am_hdr_buf = (char *) MPL_malloc(am_hdr_sz, MPL_MEM_BUFFER);
         is_allocated = 1;
     } else {
-        MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.am_hdr_buf_pool, (void **) &am_hdr_buf);
+        MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.am_list[vci].am_hdr_buf_pool, (void **) &am_hdr_buf);
         MPIR_Assert(am_hdr_buf);
         is_allocated = 0;
     }
@@ -153,7 +154,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isendv(int rank,
     if (is_allocated)
         MPL_free(am_hdr_buf);
     else
-        MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.am_hdr_buf_pool, am_hdr_buf);
+        MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.am_list[vci].am_hdr_buf_pool, am_hdr_buf);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_NM_AM_ISENDV);
     return mpi_errno;
