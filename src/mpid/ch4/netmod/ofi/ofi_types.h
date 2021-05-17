@@ -302,7 +302,8 @@ typedef struct {
     MPL_atomic_int_t am_inflight_rma_send_mrs;
 
     MPIDU_genq_private_pool_t am_hdr_buf_pool;
-
+    /* Pack buffers for various communication */
+    MPIDU_genq_private_pool_t pack_buf_pool;
     /* Sequence number trackers for active messages */
     void *am_send_seq_tracker;
     void *am_recv_seq_tracker;
@@ -359,9 +360,6 @@ typedef struct {
     /* AM related variables */
     OFI_AM_global_t am_list[MPIDI_CH4_MAX_VCIS];
     
-    /* Pack buffers for various communication */
-    MPIDU_genq_private_pool_t pack_buf_pool;
-
     /* Completion queue buffering */
     MPIDI_OFI_cq_buff_entry_t cq_buffered_static_list[MPIDI_OFI_NUM_CQ_BUFFERED];
     int cq_buffered_static_head;

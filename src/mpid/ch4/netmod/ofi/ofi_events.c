@@ -479,7 +479,7 @@ static int am_isend_event(struct fi_cq_tagged_entry *wc, MPIR_Request * sreq, in
     msg_hdr = &MPIDI_OFI_AMREQUEST_HDR(sreq, msg_hdr);
     MPID_Request_complete(sreq);
 
-    MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.pack_buf_pool,
+    MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.am_list[vci].pack_buf_pool,
                                       MPIDI_OFI_AMREQUEST_HDR(sreq, pack_buffer));
     MPIDI_OFI_AMREQUEST_HDR(sreq, pack_buffer) = NULL;
     mpi_errno = MPIDIG_global.am[vci].origin_cbs[msg_hdr->handler_id] (sreq);
@@ -522,7 +522,7 @@ static int am_isend_pipeline_event(struct fi_cq_tagged_entry *wc, MPIR_Request *
     sreq = ofi_req->sreq;
     MPID_Request_complete(sreq);        /* FIXME: Should not call MPIDI in NM ? */
 
-    MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.pack_buf_pool, ofi_req->pack_buffer);
+    MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.am_list[vci].pack_buf_pool, ofi_req->pack_buffer);
 
     MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.am_list[vci].am_hdr_buf_pool, ofi_req);
 

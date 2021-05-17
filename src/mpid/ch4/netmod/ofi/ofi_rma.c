@@ -25,7 +25,7 @@ static MPIDI_OFI_pack_chunk *create_chunk(void *pack_buffer, MPI_Aint unpack_siz
     return chunk;
 }
 
-void MPIDI_OFI_complete_chunks(MPIDI_OFI_win_request_t * winreq)
+void MPIDI_OFI_complete_chunks(MPIDI_OFI_win_request_t * winreq, int vci)
 {
     MPIDI_OFI_pack_chunk *chunk = winreq->chunks;
 
@@ -41,7 +41,7 @@ void MPIDI_OFI_complete_chunks(MPIDI_OFI_win_request_t * winreq)
         }
 
         MPIDI_OFI_pack_chunk *next = chunk->next;
-        MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.pack_buf_pool, chunk->pack_buffer);
+        MPIDU_genq_private_pool_free_cell(MPIDI_OFI_global.am_list[vci].pack_buf_pool, chunk->pack_buffer);
         MPL_free(chunk);
         chunk = next;
     }
@@ -179,7 +179,7 @@ int MPIDI_OFI_nopack_putget(const void *origin_addr, int origin_count,
     goto fn_exit;
 }
 
-static int issue_packed_put(MPIR_Win * win, MPIDI_OFI_win_request_t * req)
+static int issue_packed_put(MPIR_Win * win, MPIDI_OFI_win_request_t * req, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request **sigreq = req->sigreq;
@@ -198,7 +198,7 @@ static int issue_packed_put(MPIR_Win * win, MPIDI_OFI_win_request_t * req)
     int j = req->noncontig.put.target.iov_cur;
     size_t msg_len;
     while (req->noncontig.put.origin.pack_offset < req->noncontig.put.origin.total_bytes) {
-        MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.pack_buf_pool, &pack_buffer);
+        MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.am_list[vci].pack_buf_pool, &pack_buffer);
         if (pack_buffer == NULL)
             break;
 
@@ -270,7 +270,7 @@ static int issue_packed_put(MPIR_Win * win, MPIDI_OFI_win_request_t * req)
     goto fn_exit;
 }
 
-static int issue_packed_get(MPIR_Win * win, MPIDI_OFI_win_request_t * req)
+static int issue_packed_get(MPIR_Win * win, MPIDI_OFI_win_request_t * req, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request **sigreq = req->sigreq;
@@ -288,7 +288,7 @@ static int issue_packed_get(MPIR_Win * win, MPIDI_OFI_win_request_t * req)
     int j = req->noncontig.get.target.iov_cur;
     size_t msg_len;
     while (req->noncontig.get.origin.pack_offset < req->noncontig.get.origin.total_bytes) {
-        MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.pack_buf_pool, &pack_buffer);
+        MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.am_list[vci].pack_buf_pool, &pack_buffer);
         if (pack_buffer == NULL)
             break;
 
@@ -368,6 +368,7 @@ int MPIDI_OFI_pack_put(const void *origin_addr, int origin_count,
     origin_bytes *= origin_count;
     MPIR_Datatype_get_size_macro(target_datatype, target_bytes);
     target_bytes *= target_count;
+    int vci = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
 
     /* allocate request */
     MPIDI_OFI_win_request_t *req = MPIDI_OFI_win_request_create();
@@ -407,7 +408,7 @@ int MPIDI_OFI_pack_put(const void *origin_addr, int origin_count,
     req->noncontig.put.target.addr = addr;
     req->noncontig.put.target.key = target_mr.mr_key;
 
-    mpi_errno = issue_packed_put(win, req);
+    mpi_errno = issue_packed_put(win, req, vci);
 
   fn_exit:
     return mpi_errno;
@@ -428,6 +429,7 @@ int MPIDI_OFI_pack_get(void *origin_addr, int origin_count,
     origin_bytes *= origin_count;
     MPIR_Datatype_get_size_macro(target_datatype, target_bytes);
     target_bytes *= target_count;
+    int vci = win->comm_ptr->seq % MPIDI_CH4_MAX_VCIS;
 
     /* allocate request */
     MPIDI_OFI_win_request_t *req = MPIDI_OFI_win_request_create();
@@ -467,7 +469,7 @@ int MPIDI_OFI_pack_get(void *origin_addr, int origin_count,
     req->noncontig.get.target.addr = addr;
     req->noncontig.get.target.key = target_mr.mr_key;
 
-    mpi_errno = issue_packed_get(win, req);
+    mpi_errno = issue_packed_get(win, req, vci);
 
   fn_exit:
     return mpi_errno;
@@ -475,22 +477,22 @@ int MPIDI_OFI_pack_get(void *origin_addr, int origin_count,
     goto fn_exit;
 }
 
-int MPIDI_OFI_issue_deferred_rma(MPIR_Win * win)
+int MPIDI_OFI_issue_deferred_rma(MPIR_Win * win, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIDI_OFI_win_request_t *req = MPIDI_OFI_WIN(win).deferredQ;
 
     while (req) {
         /* free temporary buffers */
-        MPIDI_OFI_complete_chunks(req);
+        MPIDI_OFI_complete_chunks(req, vci);
 
         switch (req->rma_type) {
             case MPIDI_OFI_PUT:
-                mpi_errno = issue_packed_put(win, req);
+                mpi_errno = issue_packed_put(win, req, vci);
                 MPIR_ERR_CHECK(mpi_errno);
                 break;
             case MPIDI_OFI_GET:
-                mpi_errno = issue_packed_get(win, req);
+                mpi_errno = issue_packed_get(win, req, vci);
                 MPIR_ERR_CHECK(mpi_errno);
                 break;
             default:

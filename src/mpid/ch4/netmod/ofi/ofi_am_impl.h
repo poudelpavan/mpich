@@ -434,7 +434,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_eager(int rank, MPIR_Comm * c
          * we should not allocate the entire buffer and do the packing at once. */
         /* TODO: (1) Skip packing for high-density datatypes; */
         MPIR_Assert(data_sz <= MPIDI_OFI_DEFAULT_SHORT_SEND_SIZE);
-        MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.pack_buf_pool, (void **) &send_buf);
+        MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.am_list[vni_src].pack_buf_pool, (void **) &send_buf);
         if (send_buf == NULL) {
             if (!issue_deferred) {
                 goto fn_deferred;
@@ -635,7 +635,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_pipeline(int rank, MPIR_Comm 
          * we should not do packing unless needed. Also, for large low-density types
          * we should not allocate the entire buffer and do the packing at once. */
         /* TODO: (1) Skip packing for high-density datatypes; */
-        MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.pack_buf_pool, (void **) &send_buf);
+        MPIDU_genq_private_pool_alloc_cell(MPIDI_OFI_global.am_list[vni_src].pack_buf_pool, (void **) &send_buf);
         if (send_buf == NULL) {
             if (!issue_deferred) {
                 goto fn_deferred;

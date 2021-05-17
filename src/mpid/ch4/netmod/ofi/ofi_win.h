@@ -62,7 +62,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_win_do_progress(MPIR_Win * win, int vni)
         }
 
         if (MPIDI_OFI_WIN(win).deferredQ) {
-            MPIDI_OFI_issue_deferred_rma(win);
+            MPIDI_OFI_issue_deferred_rma(win, vni);
         } else {
             /* any/all deferred operations are complete */
             break;
@@ -73,7 +73,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_win_do_progress(MPIR_Win * win, int vni)
     while (r) {
         MPIDI_OFI_win_request_t *next = r->next;
         MPIR_Request **sigreq = r->sigreq;
-        MPIDI_OFI_win_request_complete(r);
+        MPIDI_OFI_win_request_complete(r, vni);
         MPIDI_OFI_sigreq_complete(sigreq);
         r = next;
     }
