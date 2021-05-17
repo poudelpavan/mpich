@@ -301,6 +301,10 @@ typedef struct {
     MPL_atomic_int_t am_inflight_inject_emus;
     MPL_atomic_int_t am_inflight_rma_send_mrs;
 
+    /* Sequence number trackers for active messages */
+    void *am_send_seq_tracker;
+    void *am_recv_seq_tracker;
+
     /* Queue (utlist) to store early-arrival active messages */
     MPIDI_OFI_am_unordered_msg_t *am_unordered_msgs;
 
@@ -355,10 +359,6 @@ typedef struct {
 
     MPIDU_genq_private_pool_t am_hdr_buf_pool;
     
-    /* Sequence number trackers for active messages */
-    void *am_send_seq_tracker;
-    void *am_recv_seq_tracker;
-
     /* Pack buffers for various communication */
     MPIDU_genq_private_pool_t pack_buf_pool;
 

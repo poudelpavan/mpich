@@ -574,7 +574,7 @@ static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int
     }
 #endif
 
-    expected_seqno = MPIDI_OFI_am_get_next_recv_seqno(am_hdr->fi_src_addr);
+    expected_seqno = MPIDI_OFI_am_get_next_recv_seqno(am_hdr->fi_src_addr, vci);
     if (am_hdr->seqno != expected_seqno) {
         /* This message came earlier than the one that we were expecting.
          * Put it in the queue to process it later. */
@@ -660,7 +660,7 @@ static int am_recv_event(struct fi_cq_tagged_entry *wc, MPIR_Request * rreq, int
     }
 
     /* Record the next expected sequence number from fi_src_addr */
-    MPIDI_OFI_am_set_next_recv_seqno(fi_src_addr, next_seqno);
+    MPIDI_OFI_am_set_next_recv_seqno(fi_src_addr, next_seqno, vci);
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_AM_RECV_EVENT);

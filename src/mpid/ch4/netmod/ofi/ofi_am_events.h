@@ -9,30 +9,32 @@
 #include "ofi_am_impl.h"
 #include "mpidu_genq.h"
 
-MPL_STATIC_INLINE_PREFIX uint16_t MPIDI_OFI_am_get_next_recv_seqno(fi_addr_t addr)
+MPL_STATIC_INLINE_PREFIX uint16_t MPIDI_OFI_am_get_next_recv_seqno(fi_addr_t addr, int vci)
 {
     uint64_t id = addr;
     void *r;
 
-    r = MPIDIU_map_lookup(MPIDI_OFI_global.am_recv_seq_tracker, id);
+    r = MPIDIU_map_lookup(MPIDI_OFI_global.am_list[vci].am_recv_seq_tracker, id);
     if (r == MPIDIU_MAP_NOT_FOUND) {
         MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
                         (MPL_DBG_FDEST, "First time adding recv seqno addr=%" PRIx64 "\n", addr));
-        MPIDIU_map_set(MPIDI_OFI_global.am_recv_seq_tracker, id, 0, MPL_MEM_OTHER);
+        fprintf(stdout, "%ld, First time adding recv seqno addr=%" PRIx64 "\n", pthread_self(), addr);
+        MPIDIU_map_set(MPIDI_OFI_global.am_list[vci].am_recv_seq_tracker, id, 0, MPL_MEM_OTHER);
         return 0;
     } else {
         return (uint16_t) (uintptr_t) r;
     }
 }
 
-MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_am_set_next_recv_seqno(fi_addr_t addr, uint16_t seqno)
+MPL_STATIC_INLINE_PREFIX void MPIDI_OFI_am_set_next_recv_seqno(fi_addr_t addr, uint16_t seqno, int vci)
 {
     uint64_t id = addr;
 
     MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
                     (MPL_DBG_FDEST, "Next recv seqno=%d addr=%" PRIx64 "\n", seqno, addr));
 
-    MPIDIU_map_update(MPIDI_OFI_global.am_recv_seq_tracker, id, (void *) (uintptr_t) seqno,
+    fprintf(stdout, "%ld, Next recv seqno=%d addr=%" PRIx64 "\n", pthread_self(), seqno, addr);
+    MPIDIU_map_update(MPIDI_OFI_global.am_list[vci].am_recv_seq_tracker, id, (void *) (uintptr_t) seqno,
                       MPL_MEM_OTHER);
 }
 
@@ -78,6 +80,7 @@ MPL_STATIC_INLINE_PREFIX MPIDI_OFI_am_unordered_msg_t
                             (MPL_DBG_FDEST,
                              "Found unordered message in the queue: addr=%" PRIx64 ", seqno=%d\n",
                              addr, seqno));
+            fprintf(stdout, "%ld, Found unordered message in the queue: addr=%" PRIx64 ", seqno=%d\n", pthread_self(), addr, seqno);
             DL_DELETE(MPIDI_OFI_global.am_list[vci].am_unordered_msgs, uo_msg);
             return uo_msg;
         }
@@ -93,7 +96,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_short_am(MPIDI_OFI_am_header_t * m
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_HANDLE_SHORT_AM);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_HANDLE_SHORT_AM);
-
+    fprintf(stdout, "%ld, MPIDI_OFI_handle_short_am, vci=%d\n", pthread_self(), vci);
     /* note: setting is_local, is_async, req to 0, 0, NULL */
     MPIDIG_global.am[vci].target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
                                                        p_data, msg_hdr->payload_sz, 0, 0, NULL);

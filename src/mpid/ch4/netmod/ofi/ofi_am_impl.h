@@ -16,19 +16,20 @@ MPL_STATIC_INLINE_PREFIX uint16_t MPIDI_OFI_am_fetch_incr_send_seqno(MPIR_Comm *
                                                                      int dest_rank)
 {
     int nic = 0;
+    int vci = 0;
     fi_addr_t addr = MPIDI_OFI_comm_to_phys(comm, dest_rank, nic, 0, 0);
     uint64_t id = addr;
     uint16_t seq, old_seq;
     void *ret;
 
-    ret = MPIDIU_map_lookup(MPIDI_OFI_global.am_send_seq_tracker, id);
+    ret = MPIDIU_map_lookup(MPIDI_OFI_global.am_list[vci].am_send_seq_tracker, id);
     if (ret == MPIDIU_MAP_NOT_FOUND)
         old_seq = 0;
     else
         old_seq = (uint16_t) (uintptr_t) ret;
 
     seq = old_seq + 1;
-    MPIDIU_map_update(MPIDI_OFI_global.am_send_seq_tracker, id, (void *) (uintptr_t) seq,
+    MPIDIU_map_update(MPIDI_OFI_global.am_list[vci].am_send_seq_tracker, id, (void *) (uintptr_t) seq,
                       MPL_MEM_OTHER);
 
     MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
@@ -127,6 +128,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_repost_buffer(void *buf, MPIR_Request * r
     MPIDI_OFI_am_repost_request_t *am = (MPIDI_OFI_am_repost_request_t *) req;
     int nic = 0;
     int ctx_idx = MPIDI_OFI_get_ctx_index(0, nic);
+    fprintf(stdout, "MPIDI_OFI_repost_buffer, vci=%d, ctx_idx=%d\n", vci, ctx_idx);
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_REPOST_BUFFER);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_REPOST_BUFFER);
@@ -278,6 +280,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_short(int rank, MPIR_Comm * comm
     int nic = 0;
     int vci = comm->seq % MPIDI_CH4_MAX_VCIS;
     int ctx_idx = MPIDI_OFI_get_ctx_index(0, nic);
+    fprintf(stdout, "MPIDI_OFI_am_isend_short, vci=%d, ctx_idx=%d\n", vci, ctx_idx);
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_AM_ISEND_SHORT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_AM_ISEND_SHORT);
