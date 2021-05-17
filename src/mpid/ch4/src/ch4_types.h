@@ -258,6 +258,8 @@ typedef union MPIDI_vci {
 
 /* per-vci data structure for Active Messages*/
 typedef struct {
+    MPIDIG_rreq_t *posted_lst;
+    MPIDIG_rreq_t *unexp_lst;
     MPL_atomic_uint64_t exp_seq_no;
     MPL_atomic_uint64_t nxt_seq_no;
     MPIDIG_req_ext_t *cmpl_list;

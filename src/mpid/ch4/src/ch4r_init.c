@@ -10,6 +10,7 @@ int MPIDIG_init_comm(MPIR_Comm * comm)
 {
     int mpi_errno = MPI_SUCCESS, comm_idx, subcomm_type, is_localcomm;
     MPIDIG_rreq_t **uelist;
+    int vci = comm->seq % MPIDI_CH4_MAX_VCIS;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_INIT_COMM);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_INIT_COMM);
@@ -35,6 +36,8 @@ int MPIDIG_init_comm(MPIR_Comm * comm)
     MPIDI_global.comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type] = comm;
     MPIDIG_COMM(comm, posted_list) = NULL;
     MPIDIG_COMM(comm, unexp_list) = NULL;
+    MPIDI_global.per_vci_list[vci].posted_lst = NULL;
+    MPIDI_global.per_vci_list[vci].unexp_lst = NULL;
 
     uelist = MPIDIG_context_id_to_uelist(comm->context_id);
     if (*uelist) {
@@ -42,7 +45,7 @@ int MPIDIG_init_comm(MPIR_Comm * comm)
         DL_FOREACH_SAFE(*uelist, curr, tmp) {
             DL_DELETE(*uelist, curr);
             MPIR_Comm_add_ref(comm);    /* +1 for each entry in unexp_list */
-            DL_APPEND(MPIDIG_COMM(comm, unexp_list), curr);
+            DL_APPEND(MPIDI_global.per_vci_list[vci].unexp_lst, curr);
         }
         *uelist = NULL;
     }

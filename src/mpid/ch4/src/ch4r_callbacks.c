@@ -321,7 +321,7 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
         /* MPIDI_CS_ENTER(); */
         while (TRUE) {
             rreq = MPIDIG_dequeue_posted(hdr->src_rank, hdr->tag, hdr->context_id,
-                                         is_local, &MPIDIG_COMM(root_comm, posted_list));
+                                         is_local, &MPIDI_global.per_vci_list[vci].posted_lst);
 #ifndef MPIDI_CH4_DIRECT_NETMOD
             if (rreq) {
                 int is_cancelled;
@@ -386,7 +386,7 @@ int MPIDIG_send_target_msg_cb(int handler_id, void *am_hdr, void *data, MPI_Aint
         MPID_THREAD_CS_ENTER(VCI, MPIDIU_THREAD_MPIDIG_GLOBAL_MUTEX);
         if (root_comm) {
             MPIR_Comm_add_ref(root_comm);
-            MPIDIG_enqueue_unexp(rreq, &MPIDIG_COMM(root_comm, unexp_list));
+            MPIDIG_enqueue_unexp(rreq, &MPIDI_global.per_vci_list[vci].unexp_lst);
         } else {
             MPIR_Comm *root_comm_again;
             /* This branch means that last time we checked, there was no communicator

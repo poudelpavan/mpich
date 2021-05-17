@@ -136,6 +136,8 @@ int MPIDIG_am_init(void)
 
     
     for(int vci = 0; vci < MPIDI_CH4_MAX_VCIS; vci++){
+        MPIDI_global.per_vci_list[vci].posted_lst = NULL;
+        MPIDI_global.per_vci_list[vci].unexp_lst = NULL;
         MPIDI_global.per_vci_list[vci].cmpl_list = NULL;
         MPL_atomic_store_uint64(&MPIDI_global.per_vci_list[vci].exp_seq_no, 0);
         MPL_atomic_store_uint64(&MPIDI_global.per_vci_list[vci].nxt_seq_no, 0);

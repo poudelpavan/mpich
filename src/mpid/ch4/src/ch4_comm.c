@@ -130,6 +130,7 @@ int MPID_Comm_commit_pre_hook(MPIR_Comm * comm)
     int mpi_errno;
     int i, *uniq_avtids;
     int max_n_avts;
+    int vci = comm->seq % MPIDI_CH4_MAX_VCIS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPID_COMM_COMMIT_PRE_HOOK);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPID_COMM_COMMIT_PRE_HOOK);
 
@@ -188,11 +189,11 @@ int MPID_Comm_commit_pre_hook(MPIR_Comm * comm)
 
 #ifdef HAVE_DEBUGGER_SUPPORT
 #ifndef MPIDI_CH4U_USE_PER_COMM_QUEUE
-    MPIDIG_COMM(comm, posted_head_ptr) = &(MPIDI_global.posted_list);
-    MPIDIG_COMM(comm, unexp_head_ptr) = &(MPIDI_global.unexp_list);
+    MPIDIG_COMM(comm, posted_head_ptr) = &(MPIDI_global.per_vci_list[vci].posted_lst);//&(MPIDI_global.posted_list);
+    MPIDIG_COMM(comm, unexp_head_ptr) = &(MPIDI_global.per_vci_list[vci].unexp_lst);//&(MPIDI_global.unexp_list);
 #else
-    MPIDIG_COMM(comm, posted_head_ptr) = &(MPIDIG_COMM(comm, posted_list));
-    MPIDIG_COMM(comm, unexp_head_ptr) = &(MPIDIG_COMM(comm, unexp_list));
+    MPIDIG_COMM(comm, posted_head_ptr) = &(MPIDI_global.per_vci_list[vci].posted_lst);//&(MPIDIG_COMM(comm, posted_list));
+    MPIDIG_COMM(comm, unexp_head_ptr) = &(MPIDI_global.per_vci_list[vci].unexp_lst);//&(MPIDIG_COMM(comm, unexp_list));
 #endif
 #endif
   fn_exit:

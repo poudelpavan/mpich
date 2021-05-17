@@ -179,7 +179,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_delete_posted(MPIDIG_rreq_t * req, MPIDIG_rr
 #else /* #ifdef MPIDI_CH4U_USE_PER_COMM_QUEUE */
 
 /* Use global queue */
-
+fprintf(stdout, "USING GLOAL QUEUES.\n");
 MPL_STATIC_INLINE_PREFIX void MPIDIG_enqueue_posted(MPIR_Request * req, MPIDIG_rreq_t ** list)
 {
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_ENQUEUE_POSTED);
