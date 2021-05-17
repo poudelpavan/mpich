@@ -80,7 +80,7 @@ typedef int (*MPIDIG_am_target_msg_cb) (int handler_id, void *am_hdr,
                                         void *data, MPI_Aint data_sz,
                                         int is_local, int is_async, MPIR_Request ** req);
 
-typedef struct MPIDIG_global_t {
+typedef struct am_global_t {
     MPIDIG_am_target_msg_cb target_msg_cbs[MPIDI_AM_HANDLERS_MAX];
     MPIDIG_am_origin_cb origin_cbs[MPIDI_AM_HANDLERS_MAX];
     /* Control parameters for global progress of RMA target-side active messages.
@@ -90,19 +90,22 @@ typedef struct MPIDIG_global_t {
                                          * messages has been received.
                                          * Set inside each target callback.*/
     MPIR_cc_t rma_am_poll_cntr;
+} am_t;
+typedef struct MPIDIG_global_t {
+    am_t am[MPIDI_CH4_MAX_VCIS];
 } MPIDIG_global_t;
 extern MPIDIG_global_t MPIDIG_global;
 
 void MPIDIG_am_reg_cb(int handler_id,
-                      MPIDIG_am_origin_cb origin_cb, MPIDIG_am_target_msg_cb target_msg_cb);
-int MPIDIG_am_reg_cb_dynamic(MPIDIG_am_origin_cb origin_cb, MPIDIG_am_target_msg_cb target_msg_cb);
+                      MPIDIG_am_origin_cb origin_cb, MPIDIG_am_target_msg_cb target_msg_cb, int vci);
+int MPIDIG_am_reg_cb_dynamic(MPIDIG_am_origin_cb origin_cb, MPIDIG_am_target_msg_cb target_msg_cb, int vci);
 
 int MPIDIG_am_init(void);
 void MPIDIG_am_finalize(void);
 
 /* am protocol prototypes */
 
-void MPIDIG_am_comm_abort_init(void);
+void MPIDIG_am_comm_abort_init(int vci);
 int MPIDIG_am_comm_abort(MPIR_Comm * comm, int exit_code);
 
 int MPIDIG_am_check_init(void);

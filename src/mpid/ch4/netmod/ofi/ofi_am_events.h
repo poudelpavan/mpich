@@ -87,7 +87,7 @@ MPL_STATIC_INLINE_PREFIX MPIDI_OFI_am_unordered_msg_t
 }
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_short_am(MPIDI_OFI_am_header_t * msg_hdr,
-                                                       void *am_hdr, void *p_data)
+                                                       void *am_hdr, void *p_data, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
 
@@ -95,7 +95,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_short_am(MPIDI_OFI_am_header_t * m
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_HANDLE_SHORT_AM);
 
     /* note: setting is_local, is_async, req to 0, 0, NULL */
-    MPIDIG_global.target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
+    MPIDIG_global.am[vci].target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
                                                        p_data, msg_hdr->payload_sz, 0, 0, NULL);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_HANDLE_SHORT_AM);
@@ -104,7 +104,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_short_am(MPIDI_OFI_am_header_t * m
 
 /* this is called in am_recv_event in ofi_event.c on receiver side */
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_pipeline(MPIDI_OFI_am_header_t * msg_hdr,
-                                                       void *am_hdr, void *p_data)
+                                                       void *am_hdr, void *p_data, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
     int is_done = 0;
@@ -124,7 +124,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_pipeline(MPIDI_OFI_am_header_t * m
     if (!rreq) {
         /* no cached request, this must be the first segment */
         /* note: setting is_local, is_async, req to 0, 1, rreq */
-        MPIDIG_global.target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr, p_data,
+        MPIDIG_global.am[vci].target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr, p_data,
                                                            msg_hdr->payload_sz, 0, 1, &rreq);
         MPIDIG_recv_setup(rreq);
         MPIDIG_req_cache_add(MPIDI_OFI_global.req_map, (uint64_t) msg_hdr->fi_src_addr, rreq);
@@ -141,14 +141,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_pipeline(MPIDI_OFI_am_header_t * m
 }
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_short_am_hdr(MPIDI_OFI_am_header_t * msg_hdr,
-                                                           void *am_hdr)
+                                                           void *am_hdr, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_HANDLE_SHORT_AM_HDR);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_HANDLE_SHORT_AM_HDR);
 
-    MPIDIG_global.target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
+    MPIDIG_global.am[vci].target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
                                                        NULL, 0, 0, 0, NULL);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_HANDLE_SHORT_AM_HDR);
@@ -228,7 +228,7 @@ MPL_STATIC_INLINE_PREFIX int do_long_am_recv(MPI_Aint in_data_sz, MPIR_Request *
                                              MPIDI_OFI_lmt_msg_payload_t * lmt_msg);
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_rdma_read(MPIDI_OFI_am_header_t * msg_hdr,
                                                         void *am_hdr,
-                                                        MPIDI_OFI_lmt_msg_payload_t * lmt_msg)
+                                                        MPIDI_OFI_lmt_msg_payload_t * lmt_msg, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *rreq = NULL;
@@ -237,7 +237,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_rdma_read(MPIDI_OFI_am_header_t * 
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_HANDLE_RDMA_READ);
 
     /* note: setting is_local, is_async to 0, 1 */
-    MPIDIG_global.target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
+    MPIDIG_global.am[vci].target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
                                                        NULL, msg_hdr->payload_sz, 0, 1, &rreq);
 
     if (!rreq)

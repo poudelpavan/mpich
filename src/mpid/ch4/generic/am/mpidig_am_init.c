@@ -95,10 +95,10 @@ int MPIDIG_am_check_init(void)
     return mpi_errno;
 }
 
-int MPIDIG_am_reg_cb_dynamic(MPIDIG_am_origin_cb origin_cb, MPIDIG_am_target_msg_cb target_msg_cb)
+int MPIDIG_am_reg_cb_dynamic(MPIDIG_am_origin_cb origin_cb, MPIDIG_am_target_msg_cb target_msg_cb, int vci)
 {
     if (dynamic_am_handler_id < MPIDI_AM_HANDLERS_MAX) {
-        MPIDIG_am_reg_cb(dynamic_am_handler_id, origin_cb, target_msg_cb);
+        MPIDIG_am_reg_cb(dynamic_am_handler_id, origin_cb, target_msg_cb, vci);
         dynamic_am_handler_id++;
         return dynamic_am_handler_id - 1;
     } else {
@@ -107,13 +107,13 @@ int MPIDIG_am_reg_cb_dynamic(MPIDIG_am_origin_cb origin_cb, MPIDIG_am_target_msg
 }
 
 void MPIDIG_am_reg_cb(int handler_id,
-                      MPIDIG_am_origin_cb origin_cb, MPIDIG_am_target_msg_cb target_msg_cb)
+                      MPIDIG_am_origin_cb origin_cb, MPIDIG_am_target_msg_cb target_msg_cb, int vci)
 {
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_AM_REG_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_AM_REG_CB);
 
-    MPIDIG_global.target_msg_cbs[handler_id] = target_msg_cb;
-    MPIDIG_global.origin_cbs[handler_id] = origin_cb;
+    MPIDIG_global.am[vci].target_msg_cbs[handler_id] = target_msg_cb;
+    MPIDIG_global.am[vci].origin_cbs[handler_id] = origin_cb;
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_AM_REG_CB);
 }
@@ -141,6 +141,8 @@ int MPIDIG_am_init(void)
         MPIDI_global.per_vci_list[vci].cmpl_list = NULL;
         MPL_atomic_store_uint64(&MPIDI_global.per_vci_list[vci].exp_seq_no, 0);
         MPL_atomic_store_uint64(&MPIDI_global.per_vci_list[vci].nxt_seq_no, 0);
+        MPL_atomic_store_int(&MPIDIG_global.am[vci].rma_am_flag, 0);
+        MPIR_cc_set(&MPIDIG_global.am[vci].rma_am_poll_cntr, 0);
         mpi_errno =
             MPIDU_genq_private_pool_create_unsafe(MPIDIU_REQUEST_POOL_CELL_SIZE,
                                               MPIDIU_REQUEST_POOL_NUM_CELLS_PER_CHUNK,
@@ -155,62 +157,58 @@ int MPIDIG_am_init(void)
                                                       host_free_buffer_registered,
                                                       &MPIDI_global.per_vci_list[vci].unexp_pack_buf_pool);
         MPIR_ERR_CHECK(mpi_errno);
-    }
+        MPIR_Assert(MPIDIG_HANDLER_STATIC_MAX <= MPIDI_AM_HANDLERS_MAX);
 
-    MPL_atomic_store_int(&MPIDIG_global.rma_am_flag, 0);
-    MPIR_cc_set(&MPIDIG_global.rma_am_poll_cntr, 0);
-
-    MPIR_Assert(MPIDIG_HANDLER_STATIC_MAX <= MPIDI_AM_HANDLERS_MAX);
-
-    MPIDIG_am_reg_cb(MPIDIG_SEND, &MPIDIG_send_origin_cb, &MPIDIG_send_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_SEND_CTS, NULL, &MPIDIG_send_cts_target_msg_cb);
+    MPIDIG_am_reg_cb(MPIDIG_SEND, &MPIDIG_send_origin_cb, &MPIDIG_send_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_SEND_CTS, NULL, &MPIDIG_send_cts_target_msg_cb, vci);
     MPIDIG_am_reg_cb(MPIDIG_SEND_DATA,
-                     &MPIDIG_send_data_origin_cb, &MPIDIG_send_data_target_msg_cb);
+                     &MPIDIG_send_data_origin_cb, &MPIDIG_send_data_target_msg_cb, vci);
 
-    MPIDIG_am_reg_cb(MPIDIG_SSEND_ACK, NULL, &MPIDIG_ssend_ack_target_msg_cb);
+    MPIDIG_am_reg_cb(MPIDIG_SSEND_ACK, NULL, &MPIDIG_ssend_ack_target_msg_cb, vci);
 
-    MPIDIG_am_reg_cb(MPIDIG_PART_SEND_INIT, NULL, &MPIDIG_part_send_init_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_PART_CTS, NULL, &MPIDIG_part_cts_target_msg_cb);
+    MPIDIG_am_reg_cb(MPIDIG_PART_SEND_INIT, NULL, &MPIDIG_part_send_init_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_PART_CTS, NULL, &MPIDIG_part_cts_target_msg_cb, vci);
     MPIDIG_am_reg_cb(MPIDIG_PART_SEND_DATA, &MPIDIG_part_send_data_origin_cb,
-                     &MPIDIG_part_send_data_target_msg_cb);
+                     &MPIDIG_part_send_data_target_msg_cb, vci);
 
-    MPIDIG_am_reg_cb(MPIDIG_PUT_REQ, &MPIDIG_put_origin_cb, &MPIDIG_put_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_PUT_ACK, NULL, &MPIDIG_put_ack_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_GET_REQ, &MPIDIG_get_origin_cb, &MPIDIG_get_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_GET_ACK, &MPIDIG_get_ack_origin_cb, &MPIDIG_get_ack_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_CSWAP_REQ, &MPIDIG_cswap_origin_cb, &MPIDIG_cswap_target_msg_cb);
+    MPIDIG_am_reg_cb(MPIDIG_PUT_REQ, &MPIDIG_put_origin_cb, &MPIDIG_put_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_PUT_ACK, NULL, &MPIDIG_put_ack_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_GET_REQ, &MPIDIG_get_origin_cb, &MPIDIG_get_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_GET_ACK, &MPIDIG_get_ack_origin_cb, &MPIDIG_get_ack_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_CSWAP_REQ, &MPIDIG_cswap_origin_cb, &MPIDIG_cswap_target_msg_cb, vci);
     MPIDIG_am_reg_cb(MPIDIG_CSWAP_ACK,
-                     &MPIDIG_cswap_ack_origin_cb, &MPIDIG_cswap_ack_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_ACC_REQ, &MPIDIG_acc_origin_cb, &MPIDIG_acc_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_GET_ACC_REQ, &MPIDIG_get_acc_origin_cb, &MPIDIG_get_acc_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_ACC_ACK, NULL, &MPIDIG_acc_ack_target_msg_cb);
+                     &MPIDIG_cswap_ack_origin_cb, &MPIDIG_cswap_ack_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_ACC_REQ, &MPIDIG_acc_origin_cb, &MPIDIG_acc_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_GET_ACC_REQ, &MPIDIG_get_acc_origin_cb, &MPIDIG_get_acc_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_ACC_ACK, NULL, &MPIDIG_acc_ack_target_msg_cb, vci);
     MPIDIG_am_reg_cb(MPIDIG_GET_ACC_ACK,
-                     &MPIDIG_get_acc_ack_origin_cb, &MPIDIG_get_acc_ack_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_WIN_COMPLETE, NULL, &MPIDIG_win_ctrl_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_WIN_POST, NULL, &MPIDIG_win_ctrl_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_WIN_LOCK, NULL, &MPIDIG_win_ctrl_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_WIN_LOCK_ACK, NULL, &MPIDIG_win_ctrl_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_WIN_UNLOCK, NULL, &MPIDIG_win_ctrl_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_WIN_UNLOCK_ACK, NULL, &MPIDIG_win_ctrl_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_WIN_LOCKALL, NULL, &MPIDIG_win_ctrl_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_WIN_LOCKALL_ACK, NULL, &MPIDIG_win_ctrl_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_WIN_UNLOCKALL, NULL, &MPIDIG_win_ctrl_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_WIN_UNLOCKALL_ACK, NULL, &MPIDIG_win_ctrl_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_PUT_DT_REQ, &MPIDIG_put_dt_origin_cb, &MPIDIG_put_dt_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_PUT_DT_ACK, NULL, &MPIDIG_put_dt_ack_target_msg_cb);
+                     &MPIDIG_get_acc_ack_origin_cb, &MPIDIG_get_acc_ack_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_WIN_COMPLETE, NULL, &MPIDIG_win_ctrl_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_WIN_POST, NULL, &MPIDIG_win_ctrl_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_WIN_LOCK, NULL, &MPIDIG_win_ctrl_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_WIN_LOCK_ACK, NULL, &MPIDIG_win_ctrl_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_WIN_UNLOCK, NULL, &MPIDIG_win_ctrl_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_WIN_UNLOCK_ACK, NULL, &MPIDIG_win_ctrl_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_WIN_LOCKALL, NULL, &MPIDIG_win_ctrl_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_WIN_LOCKALL_ACK, NULL, &MPIDIG_win_ctrl_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_WIN_UNLOCKALL, NULL, &MPIDIG_win_ctrl_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_WIN_UNLOCKALL_ACK, NULL, &MPIDIG_win_ctrl_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_PUT_DT_REQ, &MPIDIG_put_dt_origin_cb, &MPIDIG_put_dt_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_PUT_DT_ACK, NULL, &MPIDIG_put_dt_ack_target_msg_cb, vci);
     MPIDIG_am_reg_cb(MPIDIG_PUT_DAT_REQ,
-                     &MPIDIG_put_data_origin_cb, &MPIDIG_put_data_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_ACC_DT_REQ, &MPIDIG_acc_dt_origin_cb, &MPIDIG_acc_dt_target_msg_cb);
+                     &MPIDIG_put_data_origin_cb, &MPIDIG_put_data_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_ACC_DT_REQ, &MPIDIG_acc_dt_origin_cb, &MPIDIG_acc_dt_target_msg_cb, vci);
     MPIDIG_am_reg_cb(MPIDIG_GET_ACC_DT_REQ,
-                     &MPIDIG_get_acc_dt_origin_cb, &MPIDIG_get_acc_dt_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_ACC_DT_ACK, NULL, &MPIDIG_acc_dt_ack_target_msg_cb);
-    MPIDIG_am_reg_cb(MPIDIG_GET_ACC_DT_ACK, NULL, &MPIDIG_get_acc_dt_ack_target_msg_cb);
+                     &MPIDIG_get_acc_dt_origin_cb, &MPIDIG_get_acc_dt_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_ACC_DT_ACK, NULL, &MPIDIG_acc_dt_ack_target_msg_cb, vci);
+    MPIDIG_am_reg_cb(MPIDIG_GET_ACC_DT_ACK, NULL, &MPIDIG_get_acc_dt_ack_target_msg_cb, vci);
     MPIDIG_am_reg_cb(MPIDIG_ACC_DAT_REQ,
-                     &MPIDIG_acc_data_origin_cb, &MPIDIG_acc_data_target_msg_cb);
+                     &MPIDIG_acc_data_origin_cb, &MPIDIG_acc_data_target_msg_cb, vci);
     MPIDIG_am_reg_cb(MPIDIG_GET_ACC_DAT_REQ,
-                     &MPIDIG_get_acc_data_origin_cb, &MPIDIG_get_acc_data_target_msg_cb);
+                     &MPIDIG_get_acc_data_origin_cb, &MPIDIG_get_acc_data_target_msg_cb, vci);
 
-    MPIDIG_am_comm_abort_init();
+    MPIDIG_am_comm_abort_init(vci);
+    }
 
     mpi_errno = MPIDIG_RMA_Init_sync_pvars();
     MPIR_ERR_CHECK(mpi_errno);

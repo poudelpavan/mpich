@@ -66,7 +66,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress_recv(int blocking)
             case MPIDI_POSIX_AM_TYPE__HDR:
             case MPIDI_POSIX_AM_TYPE__SHORT:
                 /* note: setting is_local, is_async to 1, 0 */
-                MPIDIG_global.target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
+                MPIDIG_global.am[0].target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
                                                                    payload, payload_left, 1, 0,
                                                                    NULL);
                 MPIDI_POSIX_eager_recv_commit(&transaction);
@@ -74,7 +74,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress_recv(int blocking)
                 break;
             case MPIDI_POSIX_AM_TYPE__PIPELINE:
                 /* note: setting is_local, is_async to 1, 1 */
-                MPIDIG_global.target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
+                MPIDIG_global.am[0].target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
                                                                    NULL, payload_left, 1, 1, &rreq);
                 /* prepare for asynchronous transfer */
                 MPIDIG_recv_setup(rreq);

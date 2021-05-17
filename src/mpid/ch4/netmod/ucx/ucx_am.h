@@ -19,7 +19,7 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_UCX_am_isend_callback(void *request, ucs_sta
 
     MPIR_gpu_free_host(req->dev.ch4.am.netmod_am.ucx.pack_buffer);
     req->dev.ch4.am.netmod_am.ucx.pack_buffer = NULL;
-    MPIDIG_global.origin_cbs[handler_id] (req);
+    MPIDIG_global.am[0].origin_cbs[handler_id] (req);
     ucp_request->req = NULL;
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_UCX_AM_ISEND_CALLBACK);
@@ -87,7 +87,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isend(int rank,
     /* send is done. free all resources and complete the request */
     if (ucp_request == NULL) {
         MPIR_gpu_free_host(send_buf);
-        MPIDIG_global.origin_cbs[handler_id] (sreq);
+        MPIDIG_global.am[0].origin_cbs[handler_id] (sreq);
         goto fn_exit;
     }
 
@@ -160,7 +160,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isendv(int rank,
     /* send is done. free all resources and complete the request */
     if (ucp_request == NULL) {
         MPIR_gpu_free_host(send_buf);
-        MPIDIG_global.origin_cbs[handler_id] (sreq);
+        MPIDIG_global.am[0].origin_cbs[handler_id] (sreq);
         goto fn_exit;
     }
 
@@ -270,7 +270,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_NM_am_isend_reply(MPIR_Context_id_t context_i
     /* send is done. free all resources and complete the request */
     if (ucp_request == NULL) {
         MPIR_gpu_free_host(send_buf);
-        MPIDIG_global.origin_cbs[handler_id] (sreq);
+        MPIDIG_global.am[0].origin_cbs[handler_id] (sreq);
         goto fn_exit;
     }
 

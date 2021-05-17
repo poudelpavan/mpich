@@ -11,9 +11,9 @@ static int comm_abort_target_msg_cb(int handler_id, void *am_hdr,
                                     void *data, MPI_Aint data_sz,
                                     int is_local, int is_async, MPIR_Request ** req);
 
-void MPIDIG_am_comm_abort_init(void)
+void MPIDIG_am_comm_abort_init(int vci)
 {
-    MPIDIG_am_reg_cb(MPIDIG_COMM_ABORT, &comm_abort_origin_cb, &comm_abort_target_msg_cb);
+    MPIDIG_am_reg_cb(MPIDIG_COMM_ABORT, &comm_abort_origin_cb, &comm_abort_target_msg_cb, vci);
 }
 
 /* MPIDIG_COMM_ABORT */

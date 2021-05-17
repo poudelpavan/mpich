@@ -397,7 +397,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_do_am_isend(int grank,
             MPL_free(MPIDI_POSIX_AMREQUEST_HDR(sreq, pack_buffer));
             MPIDI_POSIX_AMREQUEST_HDR(sreq, pack_buffer) = NULL;
         }
-        mpi_errno = MPIDIG_global.origin_cbs[msg_hdr->handler_id] (sreq);
+        mpi_errno = MPIDIG_global.am[0].origin_cbs[msg_hdr->handler_id] (sreq);
         MPIR_ERR_CHECK(mpi_errno);
     }
 

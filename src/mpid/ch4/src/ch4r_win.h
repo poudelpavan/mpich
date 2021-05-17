@@ -651,7 +651,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_flush(int rank, MPIR_Win * win)
             MPIDIG_EPOCH_CHECK_TARGET_LOCK(target_ptr, mpi_errno, goto fn_fail);
     }
 
-    int poll_once = MPIDIG_rma_need_poll_am()? 1 : 0;
+    int poll_once = MPIDIG_rma_need_poll_am(vci)? 1 : 0;
     MPIDIU_PROGRESS_WHILE((target_ptr && (MPIR_cc_get(target_ptr->remote_cmpl_cnts) != 0 ||
                                           MPIR_cc_get(target_ptr->remote_acc_cmpl_cnts) != 0)) ||
                           poll_once-- > 0, 0);
@@ -692,7 +692,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_flush_local_all(MPIR_Win * win)
 
     /* FIXME: now we simply set per-target counters for lockall in case
      * user flushes per target, but this should be optimized. */
-    int poll_once = MPIDIG_rma_need_poll_am()? 1 : 0;
+    int poll_once = MPIDIG_rma_need_poll_am(vci)? 1 : 0;
 
     MPIDIU_PROGRESS_WHILE((!MPIDIG_win_check_all_targets_local_completed(win) || poll_once-- > 0),
                           0);
@@ -812,7 +812,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_flush_local(int rank, MPIR_Win * win
             MPIDIG_EPOCH_CHECK_TARGET_LOCK(target_ptr, mpi_errno, goto fn_fail);
     }
 
-    int poll_once = MPIDIG_rma_need_poll_am()? 1 : 0;
+    int poll_once = MPIDIG_rma_need_poll_am(vci)? 1 : 0;
     MPIDIU_PROGRESS_WHILE(((target_ptr && MPIR_cc_get(target_ptr->local_cmpl_cnts) != 0) ||
                            poll_once-- > 0), 0);
 
@@ -868,7 +868,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_win_flush_all(MPIR_Win * win)
 
     /* FIXME: now we simply set per-target counters for lockall in case
      * user flushes per target, but this should be optimized. */
-    int poll_once = MPIDIG_rma_need_poll_am()? 1 : 0;
+    int poll_once = MPIDIG_rma_need_poll_am(vci)? 1 : 0;
 
     MPIDIU_PROGRESS_WHILE((!MPIDIG_win_check_all_targets_remote_completed(win) || poll_once-- > 0),
                           0);
