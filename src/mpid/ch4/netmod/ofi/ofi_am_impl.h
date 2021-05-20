@@ -39,11 +39,6 @@ MPL_STATIC_INLINE_PREFIX uint16_t MPIDI_OFI_am_fetch_incr_send_seqno(MPIR_Comm *
                      MPIDI_OFI_comm_to_phys(MPIR_Process.comm_world, MPIR_Process.comm_world->rank,
                                             nic, vni_src, vni_dst), addr));
 
-    fprintf(stdout, "%ld, vni_src=%d, vni_dst=%d, Generated seqno=%d for dest_rank=%d "
-                     "(context_id=0x%08x, src_addr=%" PRIx64 ", dest_addr=%" PRIx64 ")\n", pthread_self(), vni_src, vni_dst,
-                     old_seq, dest_rank, comm->context_id,
-                     MPIDI_OFI_comm_to_phys(MPIR_Process.comm_world, MPIR_Process.comm_world->rank,
-                                            nic, vni_src, vni_dst), addr);
     return old_seq;
 }
 
@@ -133,7 +128,6 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_repost_buffer(void *buf, MPIR_Request * r
     MPIDI_OFI_am_repost_request_t *am = (MPIDI_OFI_am_repost_request_t *) req;
     int nic = 0;
     int ctx_idx = MPIDI_OFI_get_ctx_index(vci, nic);
-    fprintf(stdout, "MPIDI_OFI_repost_buffer, vci=%d, ctx_idx=%d\n", vci, ctx_idx);
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_REPOST_BUFFER);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_REPOST_BUFFER);
@@ -283,9 +277,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_short(int rank, MPIR_Comm * comm
     MPIDI_OFI_am_header_t *msg_hdr;
     struct iovec *iov;
     int nic = 0;
-    int vci = vni_src;//comm->seq % MPIDI_CH4_MAX_VCIS;
+    int vci = vni_src;
     int ctx_idx = MPIDI_OFI_get_ctx_index(vci, nic);
-    fprintf(stdout, "MPIDI_OFI_am_isend_short, comm=%x, vci=%d, ctx_idx=%d, handler_id=%d\n", comm->handle, vci, ctx_idx, handler_id);
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_AM_ISEND_SHORT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_AM_ISEND_SHORT);
