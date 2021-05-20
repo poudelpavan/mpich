@@ -617,13 +617,13 @@ int init_am(int vci){
                                                   &MPIDI_OFI_global.am_list[vci].am_hdr_buf_pool);
         MPIR_ERR_CHECK(mpi_errno);
 
-        MPIDI_OFI_global.cq_buffered_dynamic_head = MPIDI_OFI_global.cq_buffered_dynamic_tail =
+        MPIDI_OFI_global.am_list[vci].cq_buffered_dynamic_head = MPIDI_OFI_global.am_list[vci].cq_buffered_dynamic_tail =
             NULL;
-        MPIDI_OFI_global.cq_buffered_static_head = MPIDI_OFI_global.cq_buffered_static_tail = 0;
+        MPIDI_OFI_global.am_list[vci].cq_buffered_static_head = MPIDI_OFI_global.am_list[vci].cq_buffered_static_tail = 0;
         optlen = MPIDI_OFI_DEFAULT_SHORT_SEND_SIZE;
 
         int nic = 0;
-        int ctx_idx = MPIDI_OFI_get_ctx_index(0, nic);
+        int ctx_idx = MPIDI_OFI_get_ctx_index(vci, nic);
         MPIDI_OFI_CALL(fi_setopt(&(MPIDI_OFI_global.ctx[ctx_idx].rx->fid),
                                  FI_OPT_ENDPOINT,
                                  FI_OPT_MIN_MULTI_RECV, &optlen, sizeof(optlen)), setopt);
@@ -873,11 +873,10 @@ int MPIDI_OFI_mpi_finalize_hook(void)
 
             MPIDU_genq_private_pool_destroy_unsafe(MPIDI_OFI_global.am_list[j].am_hdr_buf_pool);
             MPIDU_genq_private_pool_destroy_unsafe(MPIDI_OFI_global.am_list[j].pack_buf_pool);
+            MPIR_Assert(MPIDI_OFI_global.am_list[j].cq_buffered_static_head ==
+                    MPIDI_OFI_global.am_list[j].cq_buffered_static_tail);
+            MPIR_Assert(NULL == MPIDI_OFI_global.am_list[j].cq_buffered_dynamic_head);
         }
-
-        MPIR_Assert(MPIDI_OFI_global.cq_buffered_static_head ==
-                    MPIDI_OFI_global.cq_buffered_static_tail);
-        MPIR_Assert(NULL == MPIDI_OFI_global.cq_buffered_dynamic_head);
     }
 
     int err;

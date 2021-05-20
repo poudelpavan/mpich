@@ -13,23 +13,22 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_progress_do_queue(int vni_idx);
 
 /* Acquire a sequence number to send, and record the next number */
 MPL_STATIC_INLINE_PREFIX uint16_t MPIDI_OFI_am_fetch_incr_send_seqno(MPIR_Comm * comm,
-                                                                     int dest_rank)
+                                                                     int dest_rank, int vni_src, int vni_dst)
 {
     int nic = 0;
-    int vci = 0;
-    fi_addr_t addr = MPIDI_OFI_comm_to_phys(comm, dest_rank, nic, 0, 0);
+    fi_addr_t addr = MPIDI_OFI_comm_to_phys(comm, dest_rank, nic, vni_src, vni_dst);
     uint64_t id = addr;
     uint16_t seq, old_seq;
     void *ret;
 
-    ret = MPIDIU_map_lookup(MPIDI_OFI_global.am_list[vci].am_send_seq_tracker, id);
+    ret = MPIDIU_map_lookup(MPIDI_OFI_global.am_list[vni_src].am_send_seq_tracker, id);
     if (ret == MPIDIU_MAP_NOT_FOUND)
         old_seq = 0;
     else
         old_seq = (uint16_t) (uintptr_t) ret;
 
     seq = old_seq + 1;
-    MPIDIU_map_update(MPIDI_OFI_global.am_list[vci].am_send_seq_tracker, id, (void *) (uintptr_t) seq,
+    MPIDIU_map_update(MPIDI_OFI_global.am_list[vni_src].am_send_seq_tracker, id, (void *) (uintptr_t) seq,
                       MPL_MEM_OTHER);
 
     MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
@@ -38,8 +37,13 @@ MPL_STATIC_INLINE_PREFIX uint16_t MPIDI_OFI_am_fetch_incr_send_seqno(MPIR_Comm *
                      "(context_id=0x%08x, src_addr=%" PRIx64 ", dest_addr=%" PRIx64 ")\n",
                      old_seq, dest_rank, comm->context_id,
                      MPIDI_OFI_comm_to_phys(MPIR_Process.comm_world, MPIR_Process.comm_world->rank,
-                                            nic, 0, 0), addr));
+                                            nic, vni_src, vni_dst), addr));
 
+    fprintf(stdout, "%ld, vni_src=%d, vni_dst=%d, Generated seqno=%d for dest_rank=%d "
+                     "(context_id=0x%08x, src_addr=%" PRIx64 ", dest_addr=%" PRIx64 ")\n", pthread_self(), vni_src, vni_dst,
+                     old_seq, dest_rank, comm->context_id,
+                     MPIDI_OFI_comm_to_phys(MPIR_Process.comm_world, MPIR_Process.comm_world->rank,
+                                            nic, vni_src, vni_dst), addr);
     return old_seq;
 }
 
@@ -128,7 +132,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_repost_buffer(void *buf, MPIR_Request * r
     int mpi_errno = MPI_SUCCESS;
     MPIDI_OFI_am_repost_request_t *am = (MPIDI_OFI_am_repost_request_t *) req;
     int nic = 0;
-    int ctx_idx = MPIDI_OFI_get_ctx_index(0, nic);
+    int ctx_idx = MPIDI_OFI_get_ctx_index(vci, nic);
     fprintf(stdout, "MPIDI_OFI_repost_buffer, vci=%d, ctx_idx=%d\n", vci, ctx_idx);
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_REPOST_BUFFER);
@@ -168,20 +172,20 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_progress_do_queue(int vni_idx)
 
     /* If the statically allocated buffered list is full or we've already
      * started using the dynamic list, continue using it. */
-    if (((MPIDI_OFI_global.cq_buffered_static_head + 1) %
-         MPIDI_OFI_NUM_CQ_BUFFERED == MPIDI_OFI_global.cq_buffered_static_tail) ||
-        (NULL != MPIDI_OFI_global.cq_buffered_dynamic_head)) {
+    if (((MPIDI_OFI_global.am_list[vni_idx].cq_buffered_static_head + 1) %
+         MPIDI_OFI_NUM_CQ_BUFFERED == MPIDI_OFI_global.am_list[vni_idx].cq_buffered_static_tail) ||
+        (NULL != MPIDI_OFI_global.am_list[vni_idx].cq_buffered_dynamic_head)) {
         MPIDI_OFI_cq_list_t *list_entry =
             (MPIDI_OFI_cq_list_t *) MPL_malloc(sizeof(MPIDI_OFI_cq_list_t), MPL_MEM_BUFFER);
         MPIR_Assert(list_entry);
         list_entry->cq_entry = cq_entry;
-        LL_APPEND(MPIDI_OFI_global.cq_buffered_dynamic_head,
-                  MPIDI_OFI_global.cq_buffered_dynamic_tail, list_entry);
+        LL_APPEND(MPIDI_OFI_global.am_list[vni_idx].cq_buffered_dynamic_head,
+                  MPIDI_OFI_global.am_list[vni_idx].cq_buffered_dynamic_tail, list_entry);
     } else {
-        MPIDI_OFI_global.cq_buffered_static_list[MPIDI_OFI_global.
+        MPIDI_OFI_global.am_list[vni_idx].cq_buffered_static_list[MPIDI_OFI_global.am_list[vni_idx].
                                                  cq_buffered_static_head].cq_entry = cq_entry;
-        MPIDI_OFI_global.cq_buffered_static_head =
-            (MPIDI_OFI_global.cq_buffered_static_head + 1) % MPIDI_OFI_NUM_CQ_BUFFERED;
+        MPIDI_OFI_global.am_list[vni_idx].cq_buffered_static_head =
+            (MPIDI_OFI_global.am_list[vni_idx].cq_buffered_static_head + 1) % MPIDI_OFI_NUM_CQ_BUFFERED;
     }
 
   fn_exit:
@@ -200,7 +204,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_long(int rank, MPIR_Comm * comm,
     MPIDI_OFI_lmt_msg_payload_t *lmt_info;
     struct iovec *iov;
     int nic = 0;
-    int ctx_idx = MPIDI_OFI_get_ctx_index(0, nic);
+    int ctx_idx = MPIDI_OFI_get_ctx_index(vni_src, nic);
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_AM_ISEND_LONG);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_AM_ISEND_LONG);
@@ -213,9 +217,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_long(int rank, MPIR_Comm * comm,
     msg_hdr->am_hdr_sz = MPIDI_OFI_AMREQUEST_HDR(sreq, am_hdr_sz);
     msg_hdr->payload_sz = 0;    /* LMT info sent as header */
     msg_hdr->am_type = MPIDI_AMTYPE_RDMA_READ;
-    msg_hdr->seqno = MPIDI_OFI_am_fetch_incr_send_seqno(comm, rank);
+    msg_hdr->seqno = MPIDI_OFI_am_fetch_incr_send_seqno(comm, rank, vni_src, vni_dst);
     msg_hdr->fi_src_addr
-        = MPIDI_OFI_comm_to_phys(MPIR_Process.comm_world, MPIR_Process.comm_world->rank, nic, 0, 0);
+        = MPIDI_OFI_comm_to_phys(MPIR_Process.comm_world, MPIR_Process.comm_world->rank, nic, vni_src, vni_dst);
 
     lmt_info = &MPIDI_OFI_AMREQUEST_HDR(sreq, lmt_info);
     lmt_info->context_id = comm->context_id;
@@ -262,7 +266,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_long(int rank, MPIR_Comm * comm,
     iov[2].iov_len = sizeof(*lmt_info);
     MPIDI_OFI_AMREQUEST(sreq, event_id) = MPIDI_OFI_EVENT_AM_SEND_RDMA;
     MPIDI_OFI_CALL_RETRY_AM(fi_sendv(MPIDI_OFI_global.ctx[ctx_idx].tx, iov, NULL, 3,
-                                     MPIDI_OFI_comm_to_phys(comm, rank, nic, 0, 0),
+                                     MPIDI_OFI_comm_to_phys(comm, rank, nic, vni_src, vni_dst),
                                      &MPIDI_OFI_AMREQUEST(sreq, context)), sendv, vni_src);
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_AM_ISEND_LONG);
@@ -273,15 +277,15 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_long(int rank, MPIR_Comm * comm,
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_short(int rank, MPIR_Comm * comm, int handler_id,
                                                       const void *data, MPI_Aint data_sz,
-                                                      MPIR_Request * sreq)
+                                                      MPIR_Request * sreq, int vni_src, int vni_dst)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIDI_OFI_am_header_t *msg_hdr;
     struct iovec *iov;
     int nic = 0;
-    int vci = comm->seq % MPIDI_CH4_MAX_VCIS;
-    int ctx_idx = MPIDI_OFI_get_ctx_index(0, nic);
-    fprintf(stdout, "MPIDI_OFI_am_isend_short, vci=%d, ctx_idx=%d\n", vci, ctx_idx);
+    int vci = vni_src;//comm->seq % MPIDI_CH4_MAX_VCIS;
+    int ctx_idx = MPIDI_OFI_get_ctx_index(vci, nic);
+    fprintf(stdout, "MPIDI_OFI_am_isend_short, comm=%x, vci=%d, ctx_idx=%d, handler_id=%d\n", comm->handle, vci, ctx_idx, handler_id);
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_AM_ISEND_SHORT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_AM_ISEND_SHORT);
@@ -295,9 +299,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_short(int rank, MPIR_Comm * comm
     msg_hdr->am_hdr_sz = MPIDI_OFI_AMREQUEST_HDR(sreq, am_hdr_sz);
     msg_hdr->payload_sz = data_sz;
     msg_hdr->am_type = MPIDI_AMTYPE_SHORT;
-    msg_hdr->seqno = MPIDI_OFI_am_fetch_incr_send_seqno(comm, rank);
+    msg_hdr->seqno = MPIDI_OFI_am_fetch_incr_send_seqno(comm, rank, vni_src, vni_dst);
     msg_hdr->fi_src_addr
-        = MPIDI_OFI_comm_to_phys(MPIR_Process.comm_world, MPIR_Process.comm_world->rank, nic, 0, 0);
+        = MPIDI_OFI_comm_to_phys(MPIR_Process.comm_world, MPIR_Process.comm_world->rank, nic, vni_src, vni_dst);
 
     iov = MPIDI_OFI_AMREQUEST_HDR(sreq, iov);
 
@@ -313,7 +317,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_short(int rank, MPIR_Comm * comm
     MPIR_cc_inc(sreq->cc_ptr);
     MPIDI_OFI_AMREQUEST(sreq, event_id) = MPIDI_OFI_EVENT_AM_SEND;
     MPIDI_OFI_CALL_RETRY_AM(fi_sendv(MPIDI_OFI_global.ctx[ctx_idx].tx, iov, NULL, 3,
-                                     MPIDI_OFI_comm_to_phys(comm, rank, nic, 0, 0),
+                                     MPIDI_OFI_comm_to_phys(comm, rank, nic, vni_src, vni_dst),
                                      &MPIDI_OFI_AMREQUEST(sreq, context)), sendv, vci);
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_OFI_AM_ISEND_SHORT);
@@ -326,14 +330,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_pipeline(int rank, MPIR_Comm * c
                                                          const void *data, MPI_Aint seg_sz,
                                                          MPI_Aint data_sz, MPIR_Request * sreq,
                                                          MPIDI_OFI_am_send_pipeline_request_t *
-                                                         send_req)
+                                                         send_req, int vni_src, int vni_dst)
 {
     int mpi_errno = MPI_SUCCESS, c;
     MPIDI_OFI_am_header_t *msg_hdr;
     struct iovec *iov;
     int nic = 0;
-    int vci = comm->seq % MPIDI_CH4_MAX_VCIS;
-    int ctx_idx = MPIDI_OFI_get_ctx_index(0, nic);
+    int vci = vni_src;//comm->seq % MPIDI_CH4_MAX_VCIS;
+    int ctx_idx = MPIDI_OFI_get_ctx_index(vci, nic);
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_AM_ISEND_PIPELINE);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_AM_ISEND_PIPELINE);
@@ -346,9 +350,9 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_pipeline(int rank, MPIR_Comm * c
     msg_hdr->handler_id = handler_id;
     msg_hdr->payload_sz = seg_sz;
     msg_hdr->am_type = MPIDI_AMTYPE_PIPELINE;
-    msg_hdr->seqno = MPIDI_OFI_am_fetch_incr_send_seqno(comm, rank);
+    msg_hdr->seqno = MPIDI_OFI_am_fetch_incr_send_seqno(comm, rank, vni_src, vni_dst);
     msg_hdr->fi_src_addr
-        = MPIDI_OFI_comm_to_phys(MPIR_Process.comm_world, MPIR_Process.comm_world->rank, nic, 0, 0);
+        = MPIDI_OFI_comm_to_phys(MPIR_Process.comm_world, MPIR_Process.comm_world->rank, nic, vni_src, vni_dst);
 
     iov = send_req->iov;
 
@@ -374,7 +378,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_am_isend_pipeline(int rank, MPIR_Comm * c
     num_iov++;
 
     MPIDI_OFI_CALL_RETRY_AM(fi_sendv(MPIDI_OFI_global.ctx[ctx_idx].tx, iov, NULL, num_iov,
-                                     MPIDI_OFI_comm_to_phys(comm, rank, nic, 0, 0),
+                                     MPIDI_OFI_comm_to_phys(comm, rank, nic, vni_src, vni_dst),
                                      &send_req->context), sendv, vci);
 
   fn_exit:
@@ -457,7 +461,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_eager(int rank, MPIR_Comm * c
                     (MPL_DBG_FDEST,
                      "issue eager seg for req handle=0x%x send_size %ld", sreq->handle, data_sz));
 
-    mpi_errno = MPIDI_OFI_am_isend_short(rank, comm, handler_id, send_buf, data_sz, sreq);
+    mpi_errno = MPIDI_OFI_am_isend_short(rank, comm, handler_id, send_buf, data_sz, sreq, vni_src, vni_dst);
     MPIR_ERR_CHECK(mpi_errno);
     if (issue_deferred) {
         DL_DELETE(MPIDI_OFI_global.am_list[vni_src].deferred_am_isend_q, MPIDI_OFI_AMREQUEST(sreq, deferred_req));
@@ -497,7 +501,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_emulated_inject(fi_addr_t addr,
     char *ibuf;
     size_t len;
     int nic = 0;
-    int ctx_idx = MPIDI_OFI_get_ctx_index(0, nic);
+    int ctx_idx = MPIDI_OFI_get_ctx_index(vci, nic);
 
     MPIDI_CH4_REQUEST_CREATE(sreq, MPIR_REQUEST_KIND__SEND, vci, 1);
     MPIR_ERR_CHKANDSTMT((sreq) == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
@@ -532,7 +536,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_inject(int rank,
     size_t buff_len;
     int nic = 0;
     int vci = comm->seq % MPIDI_CH4_MAX_VCIS;
-    int ctx_idx = MPIDI_OFI_get_ctx_index(0, nic);
+    int ctx_idx = MPIDI_OFI_get_ctx_index(vci, nic);
     MPIR_CHKLMEM_DECL(1);
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_DO_INJECT);
@@ -545,13 +549,13 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_inject(int rank,
     msg_hdr.am_hdr_sz = am_hdr_sz;
     msg_hdr.payload_sz = 0;
     msg_hdr.am_type = MPIDI_AMTYPE_SHORT_HDR;
-    msg_hdr.seqno = MPIDI_OFI_am_fetch_incr_send_seqno(comm, rank);
+    msg_hdr.seqno = MPIDI_OFI_am_fetch_incr_send_seqno(comm, rank, vci, vci);
     msg_hdr.fi_src_addr
-        = MPIDI_OFI_comm_to_phys(MPIR_Process.comm_world, MPIR_Process.comm_world->rank, nic, 0, 0);
+        = MPIDI_OFI_comm_to_phys(MPIR_Process.comm_world, MPIR_Process.comm_world->rank, nic, vci, vci);
 
     MPIR_Assert((uint64_t) comm->rank < (1ULL << MPIDI_OFI_AM_RANK_BITS));
 
-    addr = MPIDI_OFI_comm_to_phys(comm, rank, nic, 0, 0);
+    addr = MPIDI_OFI_comm_to_phys(comm, rank, nic, vci, vci);
 
     if (unlikely(am_hdr_sz + sizeof(msg_hdr) > MPIDI_OFI_global.max_buffered_send)) {
         mpi_errno = MPIDI_OFI_do_emulated_inject(addr, &msg_hdr, am_hdr, am_hdr_sz, vci);
@@ -668,7 +672,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_am_isend_pipeline(int rank, MPIR_Comm 
                      send_size));
 
     mpi_errno = MPIDI_OFI_am_isend_pipeline(rank, comm, handler_id, send_buf, send_size,
-                                            data_sz, sreq, send_req);
+                                            data_sz, sreq, send_req, vni_src, vni_dst);
     MPIDIG_am_send_async_issue_seg(sreq, send_size);
     MPIR_ERR_CHECK(mpi_errno);
 

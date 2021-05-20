@@ -30,14 +30,13 @@ MPL_STATIC_INLINE_PREFIX void MPIDIG_prepare_recv_req(int rank, int tag,
 
 MPL_STATIC_INLINE_PREFIX int MPIDIG_handle_unexpected(void *buf, MPI_Aint count,
                                                       MPI_Datatype datatype, MPIR_Comm * comm,
-                                                      int context_offset, MPIR_Request * rreq)
+                                                      int context_offset, MPIR_Request * rreq, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
     int dt_contig;
     MPI_Aint dt_true_lb;
     MPIR_Datatype *dt_ptr;
     size_t in_data_sz, dt_sz, nbytes;
-    int vci = comm->seq % MPIDI_CH4_MAX_VCIS;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_HANDLE_UNEXPECTED);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_HANDLE_UNEXPECTED);
@@ -138,7 +137,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_do_irecv(void *buf, MPI_Aint count, MPI_Data
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_DO_IRECV);
 
     root_comm = MPIDIG_context_id_to_comm(context_id);
-    unexp_req = MPIDIG_dequeue_unexp(rank, tag, context_id, &MPIDI_global.per_vci_list[vni_dst].unexp_lst);
+    unexp_req = MPIDIG_dequeue_unexp(rank, tag, context_id, &(MPIDI_global.per_vci_list[vni_dst].unexp_lst));
 
     if (unexp_req) {
         MPIR_Comm_release(root_comm);   /* -1 for removing from unexp_list */
@@ -177,7 +176,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_do_irecv(void *buf, MPI_Aint count, MPI_Data
                 /* if the unexpected recv is ready, the data is in the unexpected buffer. Just
                  * copy them to complete */
                 mpi_errno = MPIDIG_handle_unexpected(buf, count, datatype, root_comm, context_id,
-                                                     unexp_req);
+                                                     unexp_req, vni_dst);
                 MPIR_ERR_CHECK(mpi_errno);
                 if (*request == NULL) {
                     /* Regular (non-enqueuing) path: MPIDIG is responsbile for allocating
@@ -254,7 +253,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_do_irecv(void *buf, MPI_Aint count, MPI_Data
         /* Increment refcnt for comm before posting rreq to posted_list,
          * to make sure comm is alive while holding an entry in the posted_list */
         MPIR_Comm_add_ref(root_comm);
-        MPIDIG_enqueue_posted(rreq, &MPIDI_global.per_vci_list[vni_dst].posted_lst);
+        MPIDIG_enqueue_posted(rreq, &(MPIDI_global.per_vci_list[vni_dst].posted_lst));
         /* MPIDI_CS_EXIT(); */
     } else {
         MPIDIG_REQUEST(unexp_req, req->rreq.match_req) = rreq;
@@ -375,7 +374,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDIG_mpi_cancel_recv(MPIR_Request * rreq)
         /* MPIDI_CS_ENTER(); */
         found =
             MPIDIG_delete_posted(&MPIDIG_REQUEST(rreq, req->rreq),
-                                 &MPIDI_global.per_vci_list[vci].posted_lst);
+                                 &(MPIDI_global.per_vci_list[vci].posted_lst));
         /* MPIDI_CS_EXIT(); */
 
         if (found) {

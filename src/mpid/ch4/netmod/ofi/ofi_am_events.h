@@ -96,7 +96,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_handle_short_am(MPIDI_OFI_am_header_t * m
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_HANDLE_SHORT_AM);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_HANDLE_SHORT_AM);
-    fprintf(stdout, "%ld, MPIDI_OFI_handle_short_am, vci=%d\n", pthread_self(), vci);
+
     /* note: setting is_local, is_async, req to 0, 0, NULL */
     MPIDIG_global.am[vci].target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
                                                        p_data, msg_hdr->payload_sz, 0, 0, NULL);
@@ -168,7 +168,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_rdma_read(void *dst,
     size_t done = 0, curr_len, rem = 0;
     MPIDI_OFI_am_request_t *am_req;
     MPIR_Comm *comm;
-    int vci = comm->seq % MPIDI_CH4_MAX_VCIS;
+    int vci = MPIDI_Request_get_vci(rreq);
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_OFI_DO_RDMA_READ);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_OFI_DO_RDMA_READ);
 
@@ -187,8 +187,8 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_OFI_do_rdma_read(void *dst,
         MPIR_Assert(comm);
 
         /* am uses vni 0 */
-        int vni_local = 0;
-        int vni_remote = 0;
+        int vni_local = vci;
+        int vni_remote = vci;
         int nic = 0;
         MPIDI_OFI_cntr_incr(vni_local, nic);
 

@@ -308,6 +308,12 @@ typedef struct {
     void *am_send_seq_tracker;
     void *am_recv_seq_tracker;
 
+    /* Completion queue buffering */
+    MPIDI_OFI_cq_buff_entry_t cq_buffered_static_list[MPIDI_OFI_NUM_CQ_BUFFERED];
+    int cq_buffered_static_head;
+    int cq_buffered_static_tail;
+    MPIDI_OFI_cq_list_t *cq_buffered_dynamic_head, *cq_buffered_dynamic_tail;
+
     /* Queue (utlist) to store early-arrival active messages */
     MPIDI_OFI_am_unordered_msg_t *am_unordered_msgs;
 
@@ -360,12 +366,6 @@ typedef struct {
     /* AM related variables */
     OFI_AM_global_t am_list[MPIDI_CH4_MAX_VCIS];
     
-    /* Completion queue buffering */
-    MPIDI_OFI_cq_buff_entry_t cq_buffered_static_list[MPIDI_OFI_NUM_CQ_BUFFERED];
-    int cq_buffered_static_head;
-    int cq_buffered_static_tail;
-    MPIDI_OFI_cq_list_t *cq_buffered_dynamic_head, *cq_buffered_dynamic_tail;
-
     /* Process management and PMI globals */
     int pname_set;
     int pname_len;
