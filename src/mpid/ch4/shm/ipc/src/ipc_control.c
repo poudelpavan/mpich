@@ -32,6 +32,7 @@ int MPIDI_IPCI_send_contig_lmt_rts_cb(MPIDI_SHMI_ctrl_hdr_t * ctrl_hdr)
     MPIDI_IPC_ctrl_send_contig_lmt_rts_t *slmt_rts_hdr = &ctrl_hdr->ipc_contig_slmt_rts;
     MPIR_Request *rreq = NULL;
     MPIR_Comm *root_comm;
+    int vci = 0;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_IPCI_SEND_CONTIG_LMT_RTS_CB);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_IPCI_SEND_CONTIG_LMT_RTS_CB);
 
@@ -46,10 +47,11 @@ int MPIDI_IPCI_send_contig_lmt_rts_cb(MPIDI_SHMI_ctrl_hdr_t * ctrl_hdr)
      * we increase its refcount at enqueue time. */
     root_comm = MPIDIG_context_id_to_comm(slmt_rts_hdr->context_id);
     if (root_comm) {
+        vci = root_comm->seq % MPIDI_CH4_MAX_VCIS;
         while (TRUE) {
             rreq = MPIDIG_dequeue_posted(slmt_rts_hdr->src_rank, slmt_rts_hdr->tag,
                                          slmt_rts_hdr->context_id, 1,
-                                         &MPIDIG_COMM(root_comm, posted_list));
+                                         &MPIDI_global.per_vci_list[vci].posted_lst);
 #ifndef MPIDI_CH4_DIRECT_NETMOD
             if (rreq) {
                 int is_cancelled;
@@ -82,7 +84,7 @@ int MPIDI_IPCI_send_contig_lmt_rts_cb(MPIDI_SHMI_ctrl_hdr_t * ctrl_hdr)
         MPIR_ERR_CHECK(mpi_errno);
     } else {
         /* Enqueue unexpected receive request */
-        rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RECV, 2, 0/*vci*/);
+        rreq = MPIDIG_request_create(MPIR_REQUEST_KIND__RECV, 2, vci);
         MPIR_ERR_CHKANDSTMT(rreq == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
 
         /* store CH4 am rreq info */
@@ -104,7 +106,7 @@ int MPIDI_IPCI_send_contig_lmt_rts_cb(MPIDI_SHMI_ctrl_hdr_t * ctrl_hdr)
 
         if (root_comm) {
             MPIR_Comm_add_ref(root_comm);       /* +1 for unexp_list */
-            MPIDIG_enqueue_unexp(rreq, &MPIDIG_COMM(root_comm, unexp_list));
+            MPIDIG_enqueue_unexp(rreq, &MPIDI_global.per_vci_list[vci].unexp_lst);
         } else {
             MPIDIG_enqueue_unexp(rreq,
                                  MPIDIG_context_id_to_uelist(MPIDIG_REQUEST(rreq, context_id)));

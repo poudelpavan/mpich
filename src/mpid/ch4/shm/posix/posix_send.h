@@ -19,10 +19,8 @@
 MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_mpi_isend(const void *buf, MPI_Aint count,
                                                    MPI_Datatype datatype, int rank, int tag,
                                                    MPIR_Comm * comm, int context_offset,
-                                                   MPIDI_av_entry_t * addr, MPIR_Request ** request)
+                                                   MPIDI_av_entry_t * addr, MPIR_Request ** request, int vni_src, int vni_dst)
 {
-    int vni_src = comm->seq % MPIDI_CH4_MAX_VCIS;
-    int vni_dst = comm->seq % MPIDI_CH4_MAX_VCIS;
     return MPIDIG_mpi_isend(buf, count, datatype, rank, tag, comm, context_offset, addr, request, vni_src, vni_dst);
 }
 

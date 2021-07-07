@@ -13,16 +13,16 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_eager_send(int grank, MPIDI_POSIX_am_he
                                                     const void *am_hdr, MPI_Aint am_hdr_sz,
                                                     const void *buf, MPI_Aint count,
                                                     MPI_Datatype datatype, MPI_Aint offset,
-                                                    MPI_Aint * bytes_sent)
+                                                    MPI_Aint * bytes_sent, int vci)
 {
     return MPIDI_POSIX_eager_func->send(grank, msg_hdr, am_hdr, am_hdr_sz, buf, count, datatype,
-                                        offset, bytes_sent);
+                                        offset, bytes_sent, vci);
 }
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_eager_recv_begin(MPIDI_POSIX_eager_recv_transaction_t *
-                                                          transaction)
+                                                          transaction, int vci)
 {
-    return MPIDI_POSIX_eager_func->recv_begin(transaction);
+    return MPIDI_POSIX_eager_func->recv_begin(transaction, vci);
 }
 
 MPL_STATIC_INLINE_PREFIX void MPIDI_POSIX_eager_recv_memcpy(MPIDI_POSIX_eager_recv_transaction_t *
@@ -33,9 +33,9 @@ MPL_STATIC_INLINE_PREFIX void MPIDI_POSIX_eager_recv_memcpy(MPIDI_POSIX_eager_re
 }
 
 MPL_STATIC_INLINE_PREFIX void MPIDI_POSIX_eager_recv_commit(MPIDI_POSIX_eager_recv_transaction_t *
-                                                            transaction)
+                                                            transaction, int vci)
 {
-    MPIDI_POSIX_eager_func->recv_commit(transaction);
+    MPIDI_POSIX_eager_func->recv_commit(transaction, vci);
 }
 
 MPL_STATIC_INLINE_PREFIX void MPIDI_POSIX_eager_recv_posted_hook(int grank)

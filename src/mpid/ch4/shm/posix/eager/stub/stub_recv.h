@@ -9,7 +9,7 @@
 #include "stub_impl.h"
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_eager_recv_begin(MPIDI_POSIX_eager_recv_transaction_t *
-                                                          transaction)
+                                                          transaction, int vci)
 {
     MPIR_Assert(0);
     return MPI_SUCCESS;

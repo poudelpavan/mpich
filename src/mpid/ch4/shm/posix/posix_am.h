@@ -18,7 +18,7 @@ MPL_STATIC_INLINE_PREFIX MPI_Aint MPIDI_POSIX_am_eager_limit(void)
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_do_am_send_hdr(int grank,
                                                         MPIDI_POSIX_am_header_t * msg_hdr,
-                                                        const void *am_hdr, bool issue_deferred);
+                                                        const void *am_hdr, bool issue_deferred, int vci);
 MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_do_am_isend(int rank,
                                                      MPIDI_POSIX_am_header_t * msg_hdr,
                                                      const void *am_hdr,
@@ -26,14 +26,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_do_am_isend(int rank,
                                                      const void *data,
                                                      MPI_Aint count,
                                                      MPI_Datatype datatype, MPIR_Request * sreq,
-                                                     bool issue_deferred);
+                                                     bool issue_deferred, int vci);
 
 /* Enqueue a request header onto the postponed message queue. This is a helper function and most
  * likely shouldn't be used outside of this file. */
 MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_enqueue_request(const void *am_hdr, MPI_Aint am_hdr_sz,
                                                             const int grank,
                                                             MPIDI_POSIX_am_header_t * msg_hdr_p,
-                                                            MPIR_Request * sreq)
+                                                            MPIR_Request * sreq, int vci)
 {
     MPIDI_POSIX_am_request_header_t *curr_sreq_hdr = MPIDI_POSIX_AMREQUEST(sreq, req_hdr);
     int mpi_errno = MPI_SUCCESS;
@@ -49,7 +49,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_enqueue_request(const void *am_hdr, 
         /* Prepare private storage */
 
         mpi_errno = MPIDI_POSIX_am_init_req_hdr(am_hdr, am_hdr_sz,
-                                                &MPIDI_POSIX_AMREQUEST(sreq, req_hdr), sreq);
+                                                &MPIDI_POSIX_AMREQUEST(sreq, req_hdr), sreq, vci);
         MPIR_ERR_CHECK(mpi_errno);
 
         curr_sreq_hdr = MPIDI_POSIX_AMREQUEST(sreq, req_hdr);
@@ -63,7 +63,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_enqueue_request(const void *am_hdr, 
 
     curr_sreq_hdr->request = sreq;
 
-    DL_APPEND(MPIDI_POSIX_global.postponed_queue, curr_sreq_hdr);
+    DL_APPEND(MPIDI_POSIX_global.posix_am[vci].postponed_queue, curr_sreq_hdr);
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_AM_ENQUEUE_REQUEST);
@@ -85,7 +85,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_isend(int rank,
     int mpi_errno = MPI_SUCCESS;
     MPIDI_POSIX_am_header_t msg_hdr;
     const int grank = MPIDIU_rank_to_lpid(rank, comm);
-
+    int vci = comm->seq % MPIDI_CH4_MAX_VCIS;
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_AM_ISEND);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_AM_ISEND);
 
@@ -94,7 +94,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_isend(int rank,
     msg_hdr.am_hdr_sz = am_hdr_sz;
 
     mpi_errno = MPIDI_POSIX_do_am_isend(grank, &msg_hdr, am_hdr, am_hdr_sz, data, count,
-                                        datatype, sreq, false);
+                                        datatype, sreq, false, vci);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_AM_ISEND);
     return mpi_errno;
@@ -115,6 +115,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_isendv(int rank,
     MPI_Aint am_hdr_sz = 0;
     int i;
     uint8_t *am_hdr_buf = NULL;
+    int vci = comm->seq % MPIDI_CH4_MAX_VCIS; 
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_AM_ISENDV);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_AM_ISENDV);
@@ -127,7 +128,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_isendv(int rank,
         am_hdr_buf = (uint8_t *) MPL_malloc(am_hdr_sz, MPL_MEM_SHM);
         is_allocated = 1;
     } else {
-        MPIDU_genq_private_pool_alloc_cell(MPIDI_POSIX_global.am_hdr_buf_pool,
+        MPIDU_genq_private_pool_alloc_cell(MPIDI_POSIX_global.posix_am[vci].am_hdr_buf_pool,
                                            (void **) &am_hdr_buf);
         MPIR_Assert(am_hdr_buf);
         is_allocated = 0;
@@ -147,7 +148,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_isendv(int rank,
     if (is_allocated)
         MPL_free(am_hdr_buf);
     else
-        MPIDU_genq_private_pool_free_cell(MPIDI_POSIX_global.am_hdr_buf_pool, am_hdr_buf);
+        MPIDU_genq_private_pool_free_cell(MPIDI_POSIX_global.posix_am[vci].am_hdr_buf_pool, am_hdr_buf);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_AM_ISENDV);
 
@@ -195,7 +196,7 @@ MPL_STATIC_INLINE_PREFIX MPI_Aint MPIDI_POSIX_am_eager_buf_limit(void)
  * likely shouldn't be used outside of this file. */
 MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_enqueue_req_hdr(const void *am_hdr, MPI_Aint am_hdr_sz,
                                                             const int grank,
-                                                            MPIDI_POSIX_am_header_t * msg_hdr)
+                                                            MPIDI_POSIX_am_header_t * msg_hdr, int vci)
 {
     MPIDI_POSIX_am_request_header_t *curr_sreq_hdr = NULL;
     int mpi_errno = MPI_SUCCESS;
@@ -206,7 +207,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_enqueue_req_hdr(const void *am_hdr, 
     MPIR_Assert(msg_hdr);
 
     /* Prepare private storage */
-    mpi_errno = MPIDI_POSIX_am_init_req_hdr(am_hdr, am_hdr_sz, &curr_sreq_hdr, NULL);
+    mpi_errno = MPIDI_POSIX_am_init_req_hdr(am_hdr, am_hdr_sz, &curr_sreq_hdr, NULL, vci);
     MPIR_ERR_CHECK(mpi_errno);
 
     curr_sreq_hdr->dst_grank = grank;
@@ -216,7 +217,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_enqueue_req_hdr(const void *am_hdr, 
     curr_sreq_hdr->msg_hdr_buf = *msg_hdr;
 
     curr_sreq_hdr->request = NULL;
-    DL_APPEND(MPIDI_POSIX_global.postponed_queue, curr_sreq_hdr);
+    DL_APPEND(MPIDI_POSIX_global.posix_am[vci].postponed_queue, curr_sreq_hdr);
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_AM_ENQUEUE_REQ_HDR);
@@ -234,6 +235,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_send_hdr(int rank,
     int mpi_errno = MPI_SUCCESS;
     MPIDI_POSIX_am_header_t msg_hdr;
     const int grank = MPIDIU_rank_to_lpid(rank, comm);
+    int vci = comm->seq % MPIDI_CH4_MAX_VCIS;
 
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_AM_SEND_HDR);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_AM_SEND_HDR);
@@ -243,7 +245,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_send_hdr(int rank,
     msg_hdr.am_hdr_sz = am_hdr_sz;
     msg_hdr.am_type = MPIDI_POSIX_AM_TYPE__HDR;
 
-    mpi_errno = MPIDI_POSIX_do_am_send_hdr(grank, &msg_hdr, am_hdr, false);
+    mpi_errno = MPIDI_POSIX_do_am_send_hdr(grank, &msg_hdr, am_hdr, false, vci);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_AM_SEND_HDR);
     return mpi_errno;
@@ -251,7 +253,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_am_send_hdr(int rank,
 
 MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_do_am_send_hdr(int grank,
                                                         MPIDI_POSIX_am_header_t * msg_hdr,
-                                                        const void *am_hdr, bool issue_deferred)
+                                                        const void *am_hdr, bool issue_deferred, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
     int rc = MPIDI_POSIX_OK;
@@ -259,14 +261,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_do_am_send_hdr(int grank,
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDI_POSIX_DO_AM_SEND_HDR);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDI_POSIX_DO_AM_SEND_HDR);
 
-    if (!issue_deferred && MPIDI_POSIX_global.postponed_queue) {
+    if (!issue_deferred && MPIDI_POSIX_global.posix_am[vci].postponed_queue) {
         goto fn_deferred;
     }
 
     MPIR_Assert(msg_hdr);
 
     rc = MPIDI_POSIX_eager_send(grank, msg_hdr, am_hdr, msg_hdr->am_hdr_sz, NULL, 0,
-                                MPI_DATATYPE_NULL, 0, NULL);
+                                MPI_DATATYPE_NULL, 0, NULL, vci);
 
     if (rc == MPIDI_POSIX_NOK) {
         if (!issue_deferred) {
@@ -278,16 +280,16 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_do_am_send_hdr(int grank,
 
     /* hdr is sent, dequeue if was issuing deferred op */
     if (issue_deferred) {
-        MPIDI_POSIX_am_request_header_t *curr_req_hdr = MPIDI_POSIX_global.postponed_queue;
-        DL_DELETE(MPIDI_POSIX_global.postponed_queue, curr_req_hdr);
-        MPIDI_POSIX_am_release_req_hdr(&curr_req_hdr);
+        MPIDI_POSIX_am_request_header_t *curr_req_hdr = MPIDI_POSIX_global.posix_am[vci].postponed_queue;
+        DL_DELETE(MPIDI_POSIX_global.posix_am[vci].postponed_queue, curr_req_hdr);
+        MPIDI_POSIX_am_release_req_hdr(&curr_req_hdr, vci);
     }
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDI_POSIX_DO_AM_SEND_HDR);
     return mpi_errno;
   fn_deferred:
-    mpi_errno = MPIDI_POSIX_am_enqueue_req_hdr(am_hdr, msg_hdr->am_hdr_sz, grank, msg_hdr);
+    mpi_errno = MPIDI_POSIX_am_enqueue_req_hdr(am_hdr, msg_hdr->am_hdr_sz, grank, msg_hdr, vci);
     goto fn_exit;
 }
 
@@ -319,7 +321,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_do_am_isend(int grank,
                                                      const void *data,
                                                      MPI_Aint count,
                                                      MPI_Datatype datatype, MPIR_Request * sreq,
-                                                     bool issue_deferred)
+                                                     bool issue_deferred, int vci)
 {
     int mpi_errno = MPI_SUCCESS;
     int rc = 0;
@@ -351,7 +353,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_do_am_isend(int grank,
         msg_hdr_p = MPIDI_POSIX_AMREQUEST_HDR(sreq, msg_hdr);
     }
 
-    if (!issue_deferred && MPIDI_POSIX_global.postponed_queue) {
+    if (!issue_deferred && MPIDI_POSIX_global.posix_am[vci].postponed_queue) {
         goto fn_deferred;
     }
 
@@ -360,11 +362,11 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_do_am_isend(int grank,
     if (offset) {
         rc = MPIDI_POSIX_eager_send(grank, NULL, NULL, 0, data, count, datatype, offset,
                                     MPIDIG_am_send_async_get_data_sz_left(sreq) ? &send_size
-                                    : NULL);
+                                    : NULL, vci);
     } else {
         rc = MPIDI_POSIX_eager_send(grank, msg_hdr, am_hdr, am_hdr_sz, data, count, datatype,
                                     offset, MPIDIG_am_send_async_get_data_sz_left(sreq) ? &send_size
-                                    : NULL);
+                                    : NULL, vci);
     }
 
     if (rc == MPIDI_POSIX_NOK) {
@@ -391,13 +393,13 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_do_am_isend(int grank,
     } else {
         /* all segments are sent, complete regularly and dequeue (if was issuing deferred op) */
         if (issue_deferred) {
-            MPIDI_POSIX_am_request_header_t *curr_req_hdr = MPIDI_POSIX_global.postponed_queue;
-            DL_DELETE(MPIDI_POSIX_global.postponed_queue, curr_req_hdr);
+            MPIDI_POSIX_am_request_header_t *curr_req_hdr = MPIDI_POSIX_global.posix_am[vci].postponed_queue;
+            DL_DELETE(MPIDI_POSIX_global.posix_am[vci].postponed_queue, curr_req_hdr);
 
             MPL_free(MPIDI_POSIX_AMREQUEST_HDR(sreq, pack_buffer));
             MPIDI_POSIX_AMREQUEST_HDR(sreq, pack_buffer) = NULL;
         }
-        mpi_errno = MPIDIG_global.am[0].origin_cbs[msg_hdr->handler_id] (sreq);
+        mpi_errno = MPIDIG_global.am[vci].origin_cbs[msg_hdr->handler_id] (sreq);
         MPIR_ERR_CHECK(mpi_errno);
     }
 
@@ -410,7 +412,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_do_am_isend(int grank,
     MPL_DBG_MSG_FMT(MPIDI_CH4_DBG_GENERAL, VERBOSE,
                     (MPL_DBG_FDEST, "deferred posix_am_isend req handle=0x%x", sreq->handle));
 
-    mpi_errno = MPIDI_POSIX_am_enqueue_request(am_hdr, am_hdr_sz, grank, msg_hdr_p, sreq);
+    mpi_errno = MPIDI_POSIX_am_enqueue_request(am_hdr, am_hdr_sz, grank, msg_hdr_p, sreq, vci);
     MPIDI_POSIX_AMREQUEST_HDR(sreq, buf) = data;
     MPIDI_POSIX_AMREQUEST_HDR(sreq, datatype) = datatype;
     MPIDI_POSIX_AMREQUEST_HDR(sreq, count) = count;

@@ -31,6 +31,10 @@ typedef struct {
     /* Postponed queue */
     MPIDI_POSIX_am_request_header_t *postponed_queue;
 
+} POSIX_AM_global_t;
+typedef struct {
+    POSIX_AM_global_t posix_am[MPIDI_CH4_MAX_VCIS];
+
     /* Active recv requests array */
     MPIR_Request **active_rreq;
 

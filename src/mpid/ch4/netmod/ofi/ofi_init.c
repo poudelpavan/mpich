@@ -685,7 +685,7 @@ int MPIDI_OFI_mpi_init_hook(int rank, int size, int appnum, int *tag_bits, MPIR_
     /* ---------------------------------- */
     /* Initialize Active Message          */
     /* ---------------------------------- */
-    mpi_errno = init_am(vci);
+    mpi_errno = init_am(0);
 
     if (MPIR_CVAR_CH4_OFI_CAPABILITY_SETS_DEBUG && MPIR_Process.rank == 0) {
         dump_dynamic_settings();

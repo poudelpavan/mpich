@@ -29,7 +29,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPCI_send_contig_lmt(const void *buf, MPI_Ain
                                                         int rank, int tag, MPIR_Comm * comm,
                                                         int context_offset, MPIDI_av_entry_t * addr,
                                                         MPIDI_IPCI_ipc_attr_t ipc_attr,
-                                                        MPIR_Request ** request)
+                                                        MPIR_Request ** request, int vni_src, int vni_dst)
 {
     int mpi_errno = MPI_SUCCESS;
     MPIR_Request *sreq = NULL;
@@ -41,7 +41,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_IPCI_send_contig_lmt(const void *buf, MPI_Ain
 
     /* Create send request */
     MPIR_Datatype_add_ref_if_not_builtin(datatype);
-    sreq = MPIDIG_request_create(MPIR_REQUEST_KIND__SEND, 2, 0/*vci*/);
+    sreq = MPIDIG_request_create(MPIR_REQUEST_KIND__SEND, 2, vni_src/*vci*/);
     MPIR_ERR_CHKANDSTMT((sreq) == NULL, mpi_errno, MPIX_ERR_NOREQ, goto fn_fail, "**nomemreq");
     *request = sreq;
     MPIDIG_REQUEST(sreq, buffer) = (void *) buf;

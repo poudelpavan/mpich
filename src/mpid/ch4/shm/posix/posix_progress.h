@@ -10,7 +10,7 @@
 #include "posix_eager.h"
 #include "shm_control.h"
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress_recv(int blocking)
+MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress_recv(int blocking, int vci)
 {
 
     MPIDI_POSIX_eager_recv_transaction_t transaction;
@@ -26,7 +26,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress_recv(int blocking)
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_PROGRESS_RECV);
 
     /* Check to see if any new messages are ready for processing from the eager submodule. */
-    result = MPIDI_POSIX_eager_recv_begin(&transaction);
+    result = MPIDI_POSIX_eager_recv_begin(&transaction, vci);
 
     if (MPIDI_POSIX_OK != result) {
         goto fn_exit;
@@ -55,7 +55,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress_recv(int blocking)
 
             /* TODO: discard payload for now as we only handle header in
              * current internal control protocols. */
-            MPIDI_POSIX_eager_recv_commit(&transaction);
+            MPIDI_POSIX_eager_recv_commit(&transaction, vci);
             goto fn_exit;
         }
 
@@ -66,15 +66,15 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress_recv(int blocking)
             case MPIDI_POSIX_AM_TYPE__HDR:
             case MPIDI_POSIX_AM_TYPE__SHORT:
                 /* note: setting is_local, is_async to 1, 0 */
-                MPIDIG_global.am[0].target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
+                MPIDIG_global.am[vci].target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
                                                                    payload, payload_left, 1, 0,
                                                                    NULL);
-                MPIDI_POSIX_eager_recv_commit(&transaction);
+                MPIDI_POSIX_eager_recv_commit(&transaction, vci);
                 goto fn_exit;
                 break;
             case MPIDI_POSIX_AM_TYPE__PIPELINE:
                 /* note: setting is_local, is_async to 1, 1 */
-                MPIDIG_global.am[0].target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
+                MPIDIG_global.am[vci].target_msg_cbs[msg_hdr->handler_id] (msg_hdr->handler_id, am_hdr,
                                                                    NULL, payload_left, 1, 1, &rreq);
                 /* prepare for asynchronous transfer */
                 MPIDIG_recv_setup(rreq);
@@ -93,14 +93,14 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress_recv(int blocking)
         MPIDIG_REQUEST(rreq, req->target_cmpl_cb) (rreq);
     }
 
-    MPIDI_POSIX_eager_recv_commit(&transaction);
+    MPIDI_POSIX_eager_recv_commit(&transaction, vci);
 
   fn_exit:
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_PROGRESS_RECV);
     return mpi_errno;
 }
 
-MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress_send(int blocking)
+MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress_send(int blocking, int vci)
 {
 
     int mpi_errno = MPI_SUCCESS;
@@ -109,15 +109,15 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress_send(int blocking)
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_PROGRESS_SEND);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_PROGRESS_SEND);
 
-    if (MPIDI_POSIX_global.postponed_queue) {
+    if (MPIDI_POSIX_global.posix_am[vci].postponed_queue) {
         /* Drain postponed queue */
-        curr_sreq_hdr = MPIDI_POSIX_global.postponed_queue;
+        curr_sreq_hdr = MPIDI_POSIX_global.posix_am[vci].postponed_queue;
 
         switch (curr_sreq_hdr->msg_hdr->am_type) {
             case MPIDI_POSIX_AM_TYPE__HDR:
                 mpi_errno = MPIDI_POSIX_do_am_send_hdr(curr_sreq_hdr->dst_grank,
                                                        curr_sreq_hdr->msg_hdr,
-                                                       curr_sreq_hdr->am_hdr, true);
+                                                       curr_sreq_hdr->am_hdr, true, vci);
 
                 break;
             case MPIDI_POSIX_AM_TYPE__SHORT:
@@ -129,7 +129,7 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress_send(int blocking)
                                                     curr_sreq_hdr->buf,
                                                     curr_sreq_hdr->count,
                                                     curr_sreq_hdr->datatype, curr_sreq_hdr->request,
-                                                    true);
+                                                    true, vci);
 
                 break;
             default:
@@ -149,14 +149,15 @@ MPL_STATIC_INLINE_PREFIX int MPIDI_POSIX_progress(int vci, int blocking)
 
     int mpi_errno = MPI_SUCCESS;
 
-    if (vci != 0) {
-        goto fn_exit;
-    }
+    /* Enable multiple-vci in posix progrees */
+    // if (vci != 0) {
+    //     goto fn_exit;
+    // }
 
-    mpi_errno = MPIDI_POSIX_progress_recv(blocking);
+    mpi_errno = MPIDI_POSIX_progress_recv(blocking, vci);
     MPIR_ERR_CHECK(mpi_errno);
 
-    mpi_errno = MPIDI_POSIX_progress_send(blocking);
+    mpi_errno = MPIDI_POSIX_progress_send(blocking, vci);
     MPIR_ERR_CHECK(mpi_errno);
 
   fn_exit:

@@ -33,12 +33,12 @@ typedef struct MPIDI_POSIX_eager_iqueue_transport {
     MPIDU_genq_shmem_pool_t cell_pool;
 } MPIDI_POSIX_eager_iqueue_transport_t;
 
-extern MPIDI_POSIX_eager_iqueue_transport_t MPIDI_POSIX_eager_iqueue_transport_global;
+extern MPIDI_POSIX_eager_iqueue_transport_t MPIDI_POSIX_eager_iqueue_transport_global[MPIDI_CH4_MAX_VCIS];
 
 MPL_STATIC_INLINE_PREFIX MPIDI_POSIX_eager_iqueue_transport_t
-    * MPIDI_POSIX_eager_iqueue_get_transport(void)
+    * MPIDI_POSIX_eager_iqueue_get_transport(int vci)
 {
-    return &MPIDI_POSIX_eager_iqueue_transport_global;
+    return &MPIDI_POSIX_eager_iqueue_transport_global[vci];
 }
 
 #define MPIDI_POSIX_EAGER_IQUEUE_CELL_PAYLOAD(cell) \
