@@ -33,13 +33,13 @@ int MPIDIG_init_comm(MPIR_Comm * comm)
      * Thus we take a lock here to make sure the following operations are atomically done.
      * (transferring unexpected messages from a global queue to the newly created communicator) */
     // MPID_THREAD_CS_ENTER(VCI, MPIDIU_THREAD_MPIDIG_GLOBAL_MUTEX);
-    MPIDI_global.comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type] = comm;
+    MPIDI_global.per_vci_list[vci].comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type] = comm;
     MPIDIG_COMM(comm, posted_list) = NULL;
     MPIDIG_COMM(comm, unexp_list) = NULL;
     MPIDI_global.per_vci_list[vci].posted_lst = NULL;
     MPIDI_global.per_vci_list[vci].unexp_lst = NULL;
 
-    uelist = MPIDIG_context_id_to_uelist(comm->context_id);
+    uelist = MPIDIG_context_id_to_uelist(comm->context_id, vci);
     if (*uelist) {
         MPIDIG_rreq_t *curr, *tmp;
         DL_FOREACH_SAFE(*uelist, curr, tmp) {
@@ -63,6 +63,7 @@ int MPIDIG_destroy_comm(MPIR_Comm * comm)
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_DESTROY_COMM);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_DESTROY_COMM);
 
+    int vci = comm->seq % MPIDI_CH4_MAX_VCIS;
     if (MPIR_CONTEXT_READ_FIELD(DYNAMIC_PROC, comm->recvcontext_id))
         goto fn_exit;
     comm_idx = MPIDIG_get_context_index(comm->recvcontext_id);
@@ -73,17 +74,17 @@ int MPIDIG_destroy_comm(MPIR_Comm * comm)
     MPIR_Assert(is_localcomm <= 1);
 
     // MPID_THREAD_CS_ENTER(VCI, MPIDIU_THREAD_MPIDIG_GLOBAL_MUTEX);
-    MPIR_Assert(MPIDI_global.comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type] != NULL);
+    // MPIR_Assert(MPIDI_global.per_vci_list[vci].comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type] != NULL);
 
-    if (MPIDI_global.comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type]) {
+    if (MPIDI_global.per_vci_list[vci].comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type]) {
         MPIR_Assert(MPIDIG_COMM
-                    (MPIDI_global.comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type],
+                    (MPIDI_global.per_vci_list[vci].comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type],
                      posted_list) == NULL);
         MPIR_Assert(MPIDIG_COMM
-                    (MPIDI_global.comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type],
+                    (MPIDI_global.per_vci_list[vci].comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type],
                      unexp_list) == NULL);
     }
-    MPIDI_global.comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type] = NULL;
+    MPIDI_global.per_vci_list[vci].comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type] = NULL;
     // MPID_THREAD_CS_EXIT(VCI, MPIDIU_THREAD_MPIDIG_GLOBAL_MUTEX);
 
   fn_exit:

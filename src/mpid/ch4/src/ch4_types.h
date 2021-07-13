@@ -265,6 +265,7 @@ typedef struct {
     MPIDIG_req_ext_t *cmpl_list;
     MPIDU_genq_private_pool_t buffer_pool;
     MPIDU_genq_private_pool_t unexp_pack_buf_pool;
+    MPIDIG_comm_req_list_t *comm_req_lists;
 }am_per_vci_t __attribute__ ((aligned));
 
 typedef struct MPIDI_CH4_Global_t {
@@ -278,7 +279,6 @@ typedef struct MPIDI_CH4_Global_t {
     MPIDIU_avt_manager avt_mgr;
     int is_ch4u_initialized;
     int **node_map, max_node_id;
-    MPIDIG_comm_req_list_t *comm_req_lists;
     MPIR_Commops MPIR_Comm_fns_store;
     MPID_Thread_mutex_t m[MAX_CH4_MUTEXES];
     MPIDIU_map_t *win_map;

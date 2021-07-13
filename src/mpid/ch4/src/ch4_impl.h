@@ -64,13 +64,13 @@ MPL_STATIC_INLINE_PREFIX MPIR_Comm *MPIDIG_context_id_to_comm(uint64_t context_i
 
     MPIR_Assert(subcomm_type <= 3);
     MPIR_Assert(is_localcomm <= 2);
-    ret = MPIDI_global.comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type];
+    ret = MPIDI_global.per_vci_list[0].comm_req_lists[comm_idx].comm[is_localcomm][subcomm_type];
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_CONTEXT_ID_TO_COMM);
     return ret;
 }
 
-MPL_STATIC_INLINE_PREFIX MPIDIG_rreq_t **MPIDIG_context_id_to_uelist(uint64_t context_id)
+MPL_STATIC_INLINE_PREFIX MPIDIG_rreq_t **MPIDIG_context_id_to_uelist(uint64_t context_id, int vci)
 {
     int comm_idx = MPIDIG_get_context_index(context_id);
     int subcomm_type = MPIR_CONTEXT_READ_FIELD(SUBCOMM, context_id);
@@ -83,7 +83,7 @@ MPL_STATIC_INLINE_PREFIX MPIDIG_rreq_t **MPIDIG_context_id_to_uelist(uint64_t co
     MPIR_Assert(subcomm_type <= 3);
     MPIR_Assert(is_localcomm <= 2);
 
-    ret = &MPIDI_global.comm_req_lists[comm_idx].uelist[is_localcomm][subcomm_type];
+    ret = &MPIDI_global.per_vci_list[vci].comm_req_lists[comm_idx].uelist[is_localcomm][subcomm_type];
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_CONTEXT_ID_TO_UELIST);
     return ret;

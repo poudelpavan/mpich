@@ -124,9 +124,12 @@ int MPIDIG_am_init(void)
     MPIR_FUNC_VERBOSE_STATE_DECL(MPID_STATE_MPIDIG_AM_INIT);
     MPIR_FUNC_VERBOSE_ENTER(MPID_STATE_MPIDIG_AM_INIT);
 
-    MPIDI_global.comm_req_lists = (MPIDIG_comm_req_list_t *)
-        MPL_calloc(MPIR_MAX_CONTEXT_MASK * MPIR_CONTEXT_INT_BITS,
-                   sizeof(MPIDIG_comm_req_list_t), MPL_MEM_OTHER);
+    for (int vci = 0; vci < MPIDI_CH4_MAX_VCIS; vci++)
+    {
+        MPIDI_global.per_vci_list[vci].comm_req_lists = (MPIDIG_comm_req_list_t *)
+            MPL_calloc(MPIR_MAX_CONTEXT_MASK * MPIR_CONTEXT_INT_BITS,
+                       sizeof(MPIDIG_comm_req_list_t), MPL_MEM_OTHER);
+    }
 #ifndef MPIDI_CH4U_USE_PER_COMM_QUEUE
     MPIDI_global.posted_list = NULL;
     MPIDI_global.unexp_list = NULL;
@@ -233,8 +236,8 @@ void MPIDIG_am_finalize(void)
     for(int vci = 0; vci < MPIDI_CH4_MAX_VCIS; vci++){
         MPIDU_genq_private_pool_destroy_unsafe(MPIDI_global.per_vci_list[vci].buffer_pool);
         MPIDU_genq_private_pool_destroy_unsafe(MPIDI_global.per_vci_list[vci].unexp_pack_buf_pool);
+        MPL_free(MPIDI_global.per_vci_list[vci].comm_req_lists);
     }
-    MPL_free(MPIDI_global.comm_req_lists);
 
     MPIR_FUNC_VERBOSE_EXIT(MPID_STATE_MPIDIG_AM_FINALIZE);
 }

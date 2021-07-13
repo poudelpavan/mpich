@@ -109,7 +109,7 @@ int MPIDI_IPCI_send_contig_lmt_rts_cb(MPIDI_SHMI_ctrl_hdr_t * ctrl_hdr)
             MPIDIG_enqueue_unexp(rreq, &MPIDI_global.per_vci_list[vci].unexp_lst);
         } else {
             MPIDIG_enqueue_unexp(rreq,
-                                 MPIDIG_context_id_to_uelist(MPIDIG_REQUEST(rreq, context_id)));
+                                 MPIDIG_context_id_to_uelist(MPIDIG_REQUEST(rreq, context_id),vci));
         }
 
         IPC_TRACE("send_contig_lmt_rts_cb: enqueue unexpected, rreq=%p\n", rreq);
